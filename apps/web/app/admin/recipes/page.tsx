@@ -4,7 +4,8 @@ import type { MaterialMeta } from "@/components/recipes-editor";
 
 export const dynamic = "force-dynamic";
 
-export default async function RecipesPage() {
+/** /admin/recipes — edición de recetas globales (solo administración). */
+export default async function AdminRecipesPage() {
   let recipes: Awaited<ReturnType<typeof listRecipes>> = [];
   let materials: Awaited<ReturnType<typeof listMaterials>> = [];
   let dbError = false;
@@ -38,13 +39,13 @@ export default async function RecipesPage() {
   }));
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 md:px-8">
+    <div>
       <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
         Recetas de cálculo
       </h1>
       <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-        Cantidades de material por unidad de cada rubro. Ajustalas según tu método
-        constructivo; los próximos cálculos usan estos valores.
+        Cantidades de material por unidad de cada rubro. Los próximos cálculos usan estos
+        valores.
       </p>
 
       <div className="mt-6">

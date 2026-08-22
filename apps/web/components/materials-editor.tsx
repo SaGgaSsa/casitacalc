@@ -165,8 +165,8 @@ export function MaterialsEditor({ materials }: { materials: Material[] }) {
       </div>
 
       <p className="mt-3 text-xs text-muted-foreground">
-        Los precios se guardan por proyecto de forma inmediata y se aplican a los próximos
-        cálculos. Ajustalos según tu proveedor o zona.
+        Los precios se guardan de forma inmediata y se aplican a los próximos cálculos de
+        todos los visitantes.
       </p>
     </div>
   );

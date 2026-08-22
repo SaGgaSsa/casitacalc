@@ -8,17 +8,22 @@ import {
   type UpdateMaterialPriceInput,
   type UpdateRecipeInput,
 } from "@casitacalc/shared";
+import type { ModerationStatus, Prisma, ProjectVisibility } from "@prisma/client";
 import { calculateHouse } from "@casitacalc/calculator-core";
 import { prisma } from "./client";
 import { materialToDomain, projectToHouseInput, recipeToDomain, resultToDomain } from "./mappers";
 
 // ── Proyectos ───────────────────────────────────────────────────────────────
 
-export async function createProject(input: HouseInput): Promise<string> {
+export async function createProject(
+  input: HouseInput,
+  ownerTokenHash: string,
+): Promise<string> {
   const { aberturas, ...datos } = input;
   const project = await prisma.project.create({
     data: {
       ...datos,
+      ownerTokenHash,
       openings: {
         create: aberturas.map((a) => ({
           tipo: a.tipo,
@@ -69,16 +74,20 @@ export async function deleteProject(id: string): Promise<void> {
   await prisma.project.delete({ where: { id } });
 }
 
-export async function listProjectSummaries(limit?: number): Promise<ProjectSummary[]> {
-  const projects = await prisma.project.findMany({
-    orderBy: { createdAt: "desc" },
-    take: limit,
-    include: {
-      results: { orderBy: { createdAt: "desc" }, take: 1, select: { totalGeneral: true } },
-    },
-  });
+type ProjectConResumen = {
+  id: string;
+  nombreProyecto: string;
+  anchoM: Prisma.Decimal;
+  largoM: Prisma.Decimal;
+  sistemaConstructivo: string;
+  createdAt: Date;
+  visibility: ProjectVisibility;
+  moderationStatus: ModerationStatus;
+  results: { totalGeneral: Prisma.Decimal }[];
+};
 
-  return projects.map((p) => ({
+function toSummary(p: ProjectConResumen): ProjectSummary {
+  return {
     id: p.id,
     nombreProyecto: p.nombreProyecto,
     superficieM2: Number(p.anchoM) * Number(p.largoM),
@@ -86,11 +95,179 @@ export async function listProjectSummaries(limit?: number): Promise<ProjectSumma
     fechaCreacion: p.createdAt.toISOString(),
     costoEstimado:
       p.results[0] !== undefined ? Number(p.results[0].totalGeneral) : null,
-  }));
+    visibility: p.visibility,
+    moderationStatus: p.moderationStatus,
+  };
 }
 
-export async function countProjects(): Promise<number> {
-  return prisma.project.count();
+const RESULTADO_RECIENTE = {
+  results: {
+    orderBy: { createdAt: "desc" as const },
+    take: 1,
+    select: { totalGeneral: true },
+  },
+} as const;
+
+/** Resúmenes de los proyectos del visitante (por hash de su cookie). */
+export async function listProjectSummaries(
+  ownerTokenHash: string,
+  limit?: number,
+): Promise<ProjectSummary[]> {
+  const projects = await prisma.project.findMany({
+    where: { ownerTokenHash },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    include: RESULTADO_RECIENTE,
+  });
+  return projects.map(toSummary);
+}
+
+export async function countProjectsByOwner(ownerTokenHash: string): Promise<number> {
+  return prisma.project.count({ where: { ownerTokenHash } });
+}
+
+// ── Compartir y moderación ──────────────────────────────────────────────────
+
+/** Activa el link de compartido: UNLISTED + shareToken. */
+export async function enableShare(id: string, shareToken: string): Promise<void> {
+  await prisma.project.update({
+    where: { id },
+    data: { visibility: "UNLISTED", shareToken },
+  });
+}
+
+/** Dejar de compartir: vuelve a PRIVATE e invalida el token anterior. */
+export async function disableShare(id: string): Promise<void> {
+  await prisma.project.update({
+    where: { id },
+    data: { visibility: "PRIVATE", shareToken: null },
+  });
+}
+
+/**
+ * Solicita publicación pública: pasa a PENDING.
+ * Devuelve el proyecto actualizado o null si ya está PENDING/APPROVED.
+ */
+export async function requestPublication(id: string) {
+  const project = await prisma.project.findUnique({
+    where: { id },
+    select: { moderationStatus: true },
+  });
+  if (!project) return "NOT_FOUND" as const;
+  if (project.moderationStatus === "PENDING" || project.moderationStatus === "APPROVED") {
+    return null;
+  }
+  return prisma.project.update({
+    where: { id },
+    data: { moderationStatus: "PENDING" },
+  });
+}
+
+export type AdminProjectFilter =
+  | "all"
+  | "private"
+  | "shared"
+  | "pending"
+  | "public"
+  | "rejected";
+
+const WHERE_POR_FILTRO: Record<
+  AdminProjectFilter,
+  Partial<{ visibility: ProjectVisibility; moderationStatus: ModerationStatus }>
+> = {
+  all: {},
+  private: { visibility: "PRIVATE" },
+  shared: { visibility: "UNLISTED" },
+  pending: { moderationStatus: "PENDING" },
+  public: { visibility: "PUBLIC" },
+  rejected: { moderationStatus: "REJECTED" },
+};
+
+/** Tabla de administración con filtro opcional. */
+export async function listProjectsForAdmin(
+  filter: AdminProjectFilter = "all",
+  limit?: number,
+): Promise<ProjectSummary[]> {
+  const projects = await prisma.project.findMany({
+    where: WHERE_POR_FILTRO[filter],
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    include: RESULTADO_RECIENTE,
+  });
+  return projects.map(toSummary);
+}
+
+/**
+ * Cambia el estado de moderación desde admin.
+ * Aprobar fuerza PUBLIC; rechazar vuelve a PRIVATE.
+ */
+export async function setModeration(
+  id: string,
+  moderationStatus: ModerationStatus,
+): Promise<void> {
+  const data: {
+    moderationStatus: ModerationStatus;
+    visibility?: ProjectVisibility;
+  } = { moderationStatus };
+  if (moderationStatus === "APPROVED") data.visibility = "PUBLIC";
+  if (moderationStatus === "REJECTED") data.visibility = "PRIVATE";
+  await prisma.project.update({ where: { id }, data });
+}
+
+/** Override manual de visibilidad desde admin. */
+export async function setVisibility(
+  id: string,
+  visibility: ProjectVisibility,
+): Promise<void> {
+  await prisma.project.update({ where: { id }, data: { visibility } });
+}
+
+// ── Acceso público ──────────────────────────────────────────────────────────
+
+/** Proyecto por shareToken; solo si sigue en UNLISTED. */
+export async function getProjectByShareToken(token: string) {
+  return prisma.project.findFirst({
+    where: { shareToken: token, visibility: "UNLISTED" },
+    include: { openings: { orderBy: { id: "asc" } } },
+  });
+}
+
+/** Galería pública: solo PUBLIC + APPROVED. */
+export async function listApprovedPublicProjects(limit?: number) {
+  const projects = await prisma.project.findMany({
+    where: { visibility: "PUBLIC", moderationStatus: "APPROVED" },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    include: RESULTADO_RECIENTE,
+  });
+  return projects.map((p) => {
+    const s = toSummary(p);
+    return {
+      id: s.id,
+      nombreProyecto: s.nombreProyecto,
+      superficieM2: s.superficieM2,
+      sistemaConstructivo: s.sistemaConstructivo,
+      fechaCreacion: s.fechaCreacion,
+      costoEstimado: s.costoEstimado,
+    };
+  });
+}
+
+/** Detalle público por id; solo PUBLIC + APPROVED. */
+export async function getApprovedPublicProject(id: string) {
+  return prisma.project.findFirst({
+    where: { id, visibility: "PUBLIC", moderationStatus: "APPROVED" },
+    include: { openings: { orderBy: { id: "asc" } } },
+  });
+}
+
+/** Proyecto completo (datos + aberturas) para pantalla de detalle. */
+export async function getProjectFull(id: string) {
+  const row = await prisma.project.findUnique({
+    where: { id },
+    include: { openings: { orderBy: { id: "asc" } } },
+  });
+  return row;
 }
 
 // ── Materiales y precios ────────────────────────────────────────────────────
@@ -121,15 +298,6 @@ export async function updateMaterialPrice(
     },
   });
   return materialToDomain(updated);
-}
-
-/** Proyecto completo (datos + aberturas) para pantalla de detalle. */
-export async function getProjectFull(id: string) {
-  const row = await prisma.project.findUnique({
-    where: { id },
-    include: { openings: { orderBy: { id: "asc" } } },
-  });
-  return row;
 }
 
 // ── Recetas ────────────────────────────────────────────────────────────────

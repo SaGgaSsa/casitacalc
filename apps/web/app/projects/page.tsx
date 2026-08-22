@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SquarePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -10,17 +11,22 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { listProjectSummaries } from "@casitacalc/db";
+import { MODERATION_LABELS, VISIBILITY_LABELS } from "@casitacalc/shared";
 import { formatDate, formatMoney } from "@/lib/format";
+import { getAnonymousVisitor } from "@/lib/visitor-server";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProjectsPage() {
+  const visitor = await getAnonymousVisitor();
   let projects: Awaited<ReturnType<typeof listProjectSummaries>> = [];
   let dbError = false;
-  try {
-    projects = await listProjectSummaries();
-  } catch {
-    dbError = true;
+  if (visitor) {
+    try {
+      projects = await listProjectSummaries(visitor.ownerTokenHash);
+    } catch {
+      dbError = true;
+    }
   }
 
   return (
@@ -28,10 +34,10 @@ export default async function ProjectsPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
-            Proyectos
+            Mis proyectos
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Todos los proyectos calculados.
+            Guardados en este navegador mediante tu cookie anónima.
           </p>
         </div>
         <Button asChild className="uppercase">
@@ -66,8 +72,9 @@ export default async function ProjectsPage() {
               <TableRow className="bg-muted/60 hover:bg-muted/60">
                 <TableHead>Proyecto</TableHead>
                 <TableHead className="text-right">Sup. (m²)</TableHead>
-                <TableHead>Sistema constructivo</TableHead>
                 <TableHead>Fecha</TableHead>
+                <TableHead>Visibilidad</TableHead>
+                <TableHead>Moderación</TableHead>
                 <TableHead className="text-right">Costo estimado</TableHead>
                 <TableHead className="w-20 text-center" aria-label="Acciones" />
               </TableRow>
@@ -79,11 +86,30 @@ export default async function ProjectsPage() {
                   <TableCell className="text-right font-mono text-sm">
                     {new Intl.NumberFormat("es-AR").format(p.superficieM2)}
                   </TableCell>
-                  <TableCell className="capitalize text-muted-foreground">
-                    {p.sistemaConstructivo.replace(/_/g, " ").toLowerCase()}
-                  </TableCell>
                   <TableCell className="font-mono text-sm text-muted-foreground">
                     {formatDate(p.fechaCreacion)}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={p.visibility === "PRIVATE" ? "outline" : "secondary"}
+                      className="text-xs"
+                    >
+                      {VISIBILITY_LABELS[p.visibility]}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {p.moderationStatus === "NONE" ? (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    ) : (
+                      <Badge
+                        variant={
+                          p.moderationStatus === "APPROVED" ? "default" : "destructive"
+                        }
+                        className="text-xs"
+                      >
+                        {MODERATION_LABELS[p.moderationStatus]}
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell className="text-right font-mono text-sm">
                     {p.costoEstimado != null ? formatMoney(p.costoEstimado) : "—"}

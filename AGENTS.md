@@ -8,7 +8,7 @@ Calculadora de materiales de construcción para viviendas argentinas. Monorepo p
 export PNPM_HOME="$HOME/.local/share/pnpm"; export PATH="$PNPM_HOME/bin:$PATH"  # necesario en shells nuevos
 pnpm dev                                          # web en :3000
 pnpm -r build                                     # orden topológico: shared → calculator-core → db → web
-pnpm test                                         # Vitest (solo existe en calculator-core)
+pnpm test                                         # Vitest: calculator-core (puros) + web (integración, DB casitacalc_test auto-creada)
 pnpm --filter @casitacalc/calculator-core exec vitest run tests/calculator.test.ts   # un solo archivo
 pnpm typecheck && pnpm lint                       # verificación completa
 docker compose -f ~/docker/postgresql/compose.yaml up -d             # Postgres local (¡fuera del repo!)
@@ -32,6 +32,15 @@ Validación antes de commitear: rebuild del paquete tocado → `pnpm -r typechec
 - Los precios se aplican aparte con `applyPrices(result, priceMap)` — el motor calcula cantidades sin conocer precios. `PriceMap` usa el `codigo` estable del material, nunca el id de DB.
 - Las recetas son datos (tablas `Recipe`/`RecipeItem`). `DEFAULT_RECIPES`/`DEFAULT_MATERIAL_CATALOG` en calculator-core son fallback para tests/demo; la fuente real es la DB vía seed.
 
+## Visitantes anónimos y autorización (reglas no negociables)
+
+- **Dueño de proyectos**: cookie anónima `cc_visitor` que emite `apps/web/proxy.ts` (Next 16 renombró middleware→proxy). En DB solo va el SHA-256 (`ownerTokenHash`). La API NUNCA acepta dueño/visibilidad desde el body.
+- **Centralizar checks en helpers**, nunca inline por ruta: `lib/api-auth.ts` (`visitorFromRequest`, `requireProjectOwner`, `requireAdminApi`) y `lib/admin.ts`/`lib/admin-config.ts` (sesión admin vía Auth.js Google + `ADMIN_EMAILS`). Para páginas server: `getAnonymousVisitor()` / `requireAdminPage()` de `lib/visitor-server.ts` y `lib/admin.ts`.
+- **Escrituras globales (materiales/recetas) requieren admin**; los GET quedan públicos para calcular.
+- Visibilidad: PRIVATE default; UNLISTED via `/share/[token]`; PUBLIC **solo** con moderationStatus APPROVED aparece en público. Aprobar fuerza PUBLIC; rechazar vuelve PRIVATE. Editar un proyecto no resetea la moderación.
+- Límite: 10 proyectos por visitante (`MAX_PROJECTS_PER_VISITOR` en shared). Nombres: min 4 caracteres + heurística anti-basura (`esNombreDescriptivo`).
+- Tests web mockean sesión admin vía `vi.mock("@/auth")` + `setAdminSession()` en `apps/web/tests/`.
+
 ## Decisiones de dominio que parecen bugs pero no son
 
 - Redondeo por unidad: `un`/`bolsa`/`ml` son **discretas** (ceil); `m2`/`m3`/`kg`/`l` continuas (2 decimales). `ml` es discreta porque chapas y tirantes se compran en metros enteros.
@@ -48,8 +57,8 @@ Validación antes de commitear: rebuild del paquete tocado → `pnpm -r typechec
 
 ## Prueba E2E rápida (server corriendo)
 
-1. `POST /api/projects` con `{ proyecto: HouseInput }` → devuelve `{ id }`
-2. `POST /api/projects/<id>/calculate` → cómputo con precios vigentes
+1. `POST /api/projects` con `{ proyecto: HouseInput }` → devuelve `{ id }` (requiere cookie `cc_visitor`; el proxy la emite al navegar)
+2. `POST /api/projects/<id>/calculate` con la misma cookie → cómputo con precios vigentes
 3. Casa 8×10 m, chapa 30°, 5 aberturas, 1 baño ≈ $4.5M con precios demo (muro neto 90.12 m² → 1587 ladrillos).
 
-Deploy: blueprint `render.yaml` (Render Web Service + Postgres; `prisma migrate deploy` corre dentro del build).
+Deploy: blueprint `render.yaml` (Render Web Service + Postgres; `prisma migrate deploy` corre dentro del build). Env vars nuevas en Render: `AUTH_SECRET` (generateValue), `AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET` (OAuth Google, redirect `/api/auth/callback/google`), `ADMIN_EMAILS`, `NEXT_PUBLIC_APP_URL`.

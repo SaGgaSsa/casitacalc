@@ -11,6 +11,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/// Visibilidad del proyecto. PRIVATE solo dueño; UNLISTED vía link;
+/// PUBLIC requiere aprobación de administración.
+enum ProjectVisibility {
+  PRIVATE
+  UNLISTED
+  PUBLIC
+}
+
+/// Moderación para publicación pública. Solo PUBLIC+APPROVED aparece en público.
+enum ModerationStatus {
+  NONE
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model Project {
   id                  String   @id @default(cuid())
   nombreProyecto      String
@@ -24,8 +40,19 @@ model Project {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
+  /// SHA-256 hex del token anónimo de la cookie del visitante dueño.
+  ownerTokenHash     String
+  /// Reservado para migración futura a usuarios registrados.
+  userId             String?
+  visibility         ProjectVisibility @default(PRIVATE)
+  moderationStatus   ModerationStatus  @default(NONE)
+  /// Token aleatorio para links /share/[token]; null cuando no se comparte.
+  shareToken         String?  @unique
+
   openings Opening[]
   results  CalculationResult[]
+
+  @@index([ownerTokenHash])
 }
 
 model Opening {

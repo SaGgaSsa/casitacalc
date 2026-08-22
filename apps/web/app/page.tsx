@@ -3,11 +3,11 @@ import {
   ArrowRight,
   CalendarClock,
   FileText,
-  PencilLine,
+  Globe,
   SquarePlus,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -22,9 +22,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { countProjects, getPriceMap, listMaterials, listProjectSummaries } from "@casitacalc/db";
+import { getPriceMap, listApprovedPublicProjects, listMaterials, listProjectSummaries, countProjectsByOwner } from "@casitacalc/db";
 import type { PriceMap } from "@casitacalc/shared";
 import { formatMoney, formatDate } from "@/lib/format";
+import { getAnonymousVisitor } from "@/lib/visitor-server";
 
 const MATERIALES_DESTACADOS = [
   "LADRILLO_HUECO_18X18X33",
@@ -38,12 +39,15 @@ export const dynamic = "force-dynamic";
 
 async function loadDashboard() {
   try {
-    const [cantidadProyectos, proyectos, materiales, priceMap] = await Promise.all([
-      countProjects(),
-      listProjectSummaries(5),
-      listMaterials(),
-      getPriceMap(),
-    ]);
+    const visitor = await getAnonymousVisitor();
+    const [proyectos, cantidadProyectos, proyectosPublicos, materiales, priceMap] =
+      await Promise.all([
+        visitor ? listProjectSummaries(visitor.ownerTokenHash, 5) : [],
+        visitor ? countProjectsByOwner(visitor.ownerTokenHash) : 0,
+        listApprovedPublicProjects(5),
+        listMaterials(),
+        getPriceMap(),
+      ]);
 
     const destacados = MATERIALES_DESTACADOS.map((codigo) =>
       materiales.find((m) => m.codigo === codigo),
@@ -61,6 +65,7 @@ async function loadDashboard() {
       dbError: false as const,
       cantidadProyectos,
       proyectos,
+      proyectosPublicos,
       destacados,
       priceMap,
       ultimaActualizacion: ultimaActualizacion ? new Date(ultimaActualizacion).toISOString() : null,
@@ -70,6 +75,7 @@ async function loadDashboard() {
       dbError: true as const,
       cantidadProyectos: 0,
       proyectos: [],
+      proyectosPublicos: [],
       destacados: [],
       priceMap: {} as PriceMap,
       ultimaActualizacion: null,
@@ -82,15 +88,16 @@ export default async function DashboardPage() {
   const ultimoProyecto = data.proyectos[0];
   const sinProyectos = data.cantidadProyectos === 0;
 
-  if (sinProyectos) {
+  if (sinProyectos && data.proyectosPublicos.length === 0) {
     return (
       <div className="mx-auto max-w-6xl px-4 py-12 md:px-8 md:py-20">
         <h1 className="font-heading text-3xl font-bold tracking-tight text-foreground md:text-4xl">
           Calculadora de materiales
         </h1>
         <p className="mt-2 max-w-2xl text-base text-muted-foreground">
-          Calculá los materiales necesarios para construir tu vivienda y ajustá los
-          precios según tu zona.
+          Calculá los materiales necesarios para construir tu vivienda con precios de
+          referencia de Argentina. Sin registro: tus proyectos quedan guardados en este
+          navegador.
         </p>
 
         <div className="mt-10 flex flex-col items-start gap-6 rounded-xl border border-border bg-card p-8 shadow-sm md:flex-row md:items-center md:justify-between">
@@ -141,8 +148,8 @@ export default async function DashboardPage() {
           Calculadora de materiales
         </h1>
         <p className="mt-1 max-w-3xl text-sm text-muted-foreground md:text-base">
-          Calculá los materiales necesarios para construir tu vivienda y ajustá los
-          precios según tu zona.
+          Calculá los materiales necesarios para construir tu vivienda. Tus proyectos se
+          guardan en este navegador sin necesidad de cuenta.
         </p>
       </div>
 
@@ -170,7 +177,7 @@ export default async function DashboardPage() {
         <Card className="shadow-sm">
           <CardHeader>
             <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Proyectos guardados
+              Mis proyectos
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -213,13 +220,13 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      {/* Tabla + precios */}
+      {/* Tabla + galería pública */}
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-12">
-        <div className="lg:col-span-8">
+        <div className="lg:col-span-7">
           <Card className="gap-0 overflow-hidden py-0 shadow-sm">
             <div className="flex items-center justify-between border-b border-border px-6 py-4">
               <h3 className="font-heading text-base font-semibold text-foreground">
-                Proyectos recientes
+                Mis proyectos
               </h3>
               <Button asChild variant="ghost" size="sm" className="uppercase text-primary">
                 <Link href="/projects">Ver todos</Link>
@@ -230,42 +237,80 @@ export default async function DashboardPage() {
                 <TableRow className="bg-muted/60 hover:bg-muted/60">
                   <TableHead>Proyecto</TableHead>
                   <TableHead className="text-right">Sup. (m²)</TableHead>
-                  <TableHead>Sistema constructivo</TableHead>
                   <TableHead>Fecha</TableHead>
                   <TableHead className="text-right">Costo estimado</TableHead>
                   <TableHead className="w-16 text-center" aria-label="Acciones" />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.proyectos.map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell className="font-medium">{p.nombreProyecto}</TableCell>
-                    <TableCell className="text-right font-mono text-sm">
-                      {new Intl.NumberFormat("es-AR").format(p.superficieM2)}
-                    </TableCell>
-                    <TableCell className="capitalize text-muted-foreground">
-                      {p.sistemaConstructivo.replace(/_/g, " ").toLowerCase()}
-                    </TableCell>
-                    <TableCell className="font-mono text-sm text-muted-foreground">
-                      {formatDate(p.fechaCreacion)}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-sm">
-                      {p.costoEstimado != null ? formatMoney(p.costoEstimado) : "—"}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Button asChild variant="ghost" size="sm" className="text-primary">
-                        <Link href={`/projects/${p.id}`}>Abrir</Link>
-                      </Button>
+                {data.proyectos.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
+                      Todavía no creaste ningún proyecto.
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  data.proyectos.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell className="font-medium">{p.nombreProyecto}</TableCell>
+                      <TableCell className="text-right font-mono text-sm">
+                        {new Intl.NumberFormat("es-AR").format(p.superficieM2)}
+                      </TableCell>
+                      <TableCell className="font-mono text-sm text-muted-foreground">
+                        {formatDate(p.fechaCreacion)}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-sm">
+                        {p.costoEstimado != null ? formatMoney(p.costoEstimado) : "—"}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Button asChild variant="ghost" size="sm" className="text-primary">
+                          <Link href={`/projects/${p.id}`}>Abrir</Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </Card>
+
+          {data.proyectosPublicos.length > 0 && (
+            <Card className="mt-6 gap-0 overflow-hidden py-0 shadow-sm">
+              <div className="flex items-center gap-2 border-b border-border px-6 py-4">
+                <Globe className="size-4 text-muted-foreground" />
+                <h3 className="font-heading text-base font-semibold text-foreground">
+                  Proyectos públicos de la comunidad
+                </h3>
+              </div>
+              <ul>
+                {data.proyectosPublicos.map((p, index) => (
+                  <li
+                    key={p.id}
+                    className={`flex flex-wrap items-center justify-between gap-2 px-6 py-3 ${
+                      index < data.proyectosPublicos.length - 1 ? "border-b border-border/70" : ""
+                    }`}
+                  >
+                    <div>
+                      <span className="block text-sm font-medium capitalize text-foreground">
+                        {p.nombreProyecto}
+                      </span>
+                      <span className="block text-[11px] text-muted-foreground">
+                        {new Intl.NumberFormat("es-AR").format(p.superficieM2)} m² ·{" "}
+                        {formatDate(p.fechaCreacion)}
+                      </span>
+                    </div>
+                    <Badge variant="secondary" className="font-mono">
+                      {p.costoEstimado != null ? formatMoney(p.costoEstimado) : "—"}
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
         </div>
 
-        {/* Panel lateral de precios */}
-        <div className="lg:col-span-4">
+        {/* Panel lateral de precios (solo lectura para visitantes) */}
+        <div className="lg:col-span-5">
           <Card className="gap-0 overflow-hidden py-0 shadow-sm">
             <div className="flex items-center justify-between border-b border-border px-6 py-4">
               <h3 className="font-heading text-base font-semibold text-foreground">
@@ -274,7 +319,7 @@ export default async function DashboardPage() {
               <Badge variant="secondary">ARS</Badge>
             </div>
             <p className="border-b border-border bg-muted/40 px-6 py-3 text-xs text-muted-foreground">
-              Valores promedio. Ajustalos según tu proveedor o zona para mayor precisión.
+              Valores promedio del catálogo global; los administra CasitaCalc.
             </p>
             <ul>
               {data.destacados.map((m, index) => (
@@ -299,14 +344,6 @@ export default async function DashboardPage() {
                 </li>
               ))}
             </ul>
-            <div className="border-t border-border p-4">
-              <Button asChild variant="outline" className="w-full uppercase text-primary">
-                <Link href="/materials">
-                  <PencilLine className="size-4" />
-                  Editar precios por zona
-                </Link>
-              </Button>
-            </div>
           </Card>
         </div>
       </div>

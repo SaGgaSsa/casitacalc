@@ -4,12 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Calculator,
   FolderOpen,
   Home,
-  ListTree,
   Menu,
-  Settings,
+  Shield,
   SquarePlus,
   X,
 } from "lucide-react";
@@ -17,13 +15,17 @@ import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/", label: "Inicio", icon: Home, exact: true },
-  { href: "/projects", label: "Proyectos", icon: FolderOpen, exact: false },
+  { href: "/projects", label: "Mis proyectos", icon: FolderOpen, exact: false },
   { href: "/projects/new", label: "Nuevo cálculo", icon: SquarePlus, exact: true },
-  { href: "/materials", label: "Materiales", icon: ListTree, exact: false },
-  { href: "/recipes", label: "Recetas", icon: Calculator, exact: false },
 ] as const;
 
-function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
+function NavLinks({
+  isAdmin,
+  onNavigate,
+}: {
+  isAdmin: boolean;
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
 
   return (
@@ -51,21 +53,26 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
             </Link>
           );
         })}
+        {isAdmin && (
+          <Link
+            href="/admin"
+            onClick={onNavigate}
+            className={cn(
+              "flex items-center gap-3 rounded-md px-4 py-2.5 text-sm font-medium transition-colors",
+              pathname.startsWith("/admin")
+                ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                : "text-sidebar-foreground hover:bg-sidebar-accent/60",
+            )}
+          >
+            <Shield className="size-4" />
+            Administración
+          </Link>
+        )}
       </nav>
       <div className="mt-auto flex flex-col gap-1 px-3 pb-6">
-        <Link
-          href="/settings"
-          onClick={onNavigate}
-          className={cn(
-            "flex items-center gap-3 rounded-md px-4 py-2.5 text-sm font-medium transition-colors",
-            pathname.startsWith("/settings")
-              ? "bg-sidebar-accent text-sidebar-accent-foreground"
-              : "text-sidebar-foreground hover:bg-sidebar-accent/60",
-          )}
-        >
-          <Settings className="size-4" />
-          Configuración
-        </Link>
+        <p className="px-4 text-[11px] leading-relaxed text-muted-foreground">
+          Tus proyectos se guardan en este navegador mediante una cookie anónima.
+        </p>
       </div>
     </>
   );
@@ -84,7 +91,13 @@ function Brand({ className }: { className?: string }) {
   );
 }
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  children,
+  isAdmin = false,
+}: {
+  children: React.ReactNode;
+  isAdmin?: boolean;
+}) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -92,7 +105,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Sidebar desktop */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-sidebar-border bg-sidebar md:flex">
         <Brand />
-        <NavLinks />
+        <NavLinks isAdmin={isAdmin} />
       </aside>
 
       {/* Drawer mobile */}
@@ -114,7 +127,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <X className="size-5" />
               </button>
             </div>
-            <NavLinks onNavigate={() => setMobileOpen(false)} />
+            <NavLinks isAdmin={isAdmin} onNavigate={() => setMobileOpen(false)} />
           </div>
         </div>
       )}

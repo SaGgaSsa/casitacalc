@@ -1,11 +1,18 @@
 import { NextResponse } from "next/server";
 import { UpdateMaterialPriceSchema } from "@casitacalc/shared";
 import { updateMaterialPrice } from "@casitacalc/db";
+import {
+  adminRequiredResponse,
+  requireAdminApi,
+} from "@/lib/api-auth";
 
 type Params = { params: Promise<{ id: string }> };
 
-/** PUT /api/materials/[id]/price — carga manual de precio. */
+/** PUT /api/materials/[id]/price — carga manual de precio (requiere admin). */
 export async function PUT(request: Request, { params }: Params) {
+  const admin = await requireAdminApi();
+  if (!admin) return adminRequiredResponse();
+
   const { id } = await params;
 
   let body: unknown;

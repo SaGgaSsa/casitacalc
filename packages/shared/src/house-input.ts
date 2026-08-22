@@ -8,10 +8,38 @@ import { OpeningSchema, type Opening } from "./opening";
 
 export const MIN_ROOF_ANGLE_DEG = 5;
 export const MAX_ROOF_ANGLE_DEG = 60;
+export const MIN_NOMBRE_LENGTH = 4;
+export const MAX_PROJECTS_PER_VISITOR = 10;
+
+/** Al menos una letra Unicode en el nombre. */
+const TIENE_LETRA_RE = /\p{L}/u;
+/** Cuatro o más caracteres idénticos consecutivos (ej: "aaaa"). */
+const REPETICION_EXCESIVA_RE = /(.)\1{3,}/u;
+
+/**
+ * Heurística anti-basura: rechaza nombres tipo "aaaaaa" u "hhhjhhh".
+ * Exige una letra, al menos 3 caracteres distintos y sin repeticiones excesivas.
+ */
+export function esNombreDescriptivo(nombre: string): boolean {
+  if (!TIENE_LETRA_RE.test(nombre)) return false;
+  if (new Set(nombre.toLowerCase()).size < 3) return false;
+  if (REPETICION_EXCESIVA_RE.test(nombre)) return false;
+  return true;
+}
 
 /** Objeto base sin refinamientos (permite .extend/.partial en DTOs). */
 export const HouseInputObjectSchema = z.object({
-  nombreProyecto: z.string().trim().min(1).max(80),
+  nombreProyecto: z
+    .string()
+    .trim()
+    .min(MIN_NOMBRE_LENGTH, {
+      message: `El nombre debe tener al menos ${MIN_NOMBRE_LENGTH} caracteres`,
+    })
+    .max(80)
+    .refine(esNombreDescriptivo, {
+      message:
+        "El nombre parece texto aleatorio; escribí un nombre descriptivo para la vivienda",
+    }),
   /** Ancho de la planta (m). */
   anchoM: z.number().positive().max(100),
   /** Largo de la planta (m). */

@@ -1,23 +1,33 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
+import { CreateProjectRequestSchema } from "@casitacalc/shared";
 import {
-  HouseInputObjectSchema,
-  ProjectSummarySchema,
+  MAX_PROJECTS_PER_VISITOR,
 } from "@casitacalc/shared";
-import type { ProjectResponse } from "@casitacalc/shared";
 import {
+  countProjectsByOwner,
   createProject,
   listProjectSummaries,
 } from "@casitacalc/db";
+import { visitorFromRequest } from "@/lib/api-auth";
 
-/** GET /api/projects — resúmenes para tablas. */
-export async function GET() {
-  const summaries = await listProjectSummaries();
+/** GET /api/projects — resúmenes SOLO de los proyectos del visitante. */
+export async function GET(request: Request) {
+  const visitor = visitorFromRequest(request);
+  if (!visitor) return NextResponse.json([]);
+  const summaries = await listProjectSummaries(visitor.ownerTokenHash);
   return NextResponse.json(summaries);
 }
 
-/** POST /api/projects — crea el proyecto y devuelve su id público. */
+/** POST /api/projects — crea el proyecto asociado a la cookie anónima. */
 export async function POST(request: Request) {
+  const visitor = visitorFromRequest(request);
+  if (!visitor) {
+    return NextResponse.json(
+      { error: "Visitante no identificado; recargá la página" },
+      { status: 401 },
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();
@@ -25,7 +35,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
   }
 
-  const parsed = z.object({ proyecto: HouseInputObjectSchema }).safeParse(body);
+  const parsed = CreateProjectRequestSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Datos del proyecto inválidos", issues: parsed.error.flatten() },
@@ -34,7 +44,17 @@ export async function POST(request: Request) {
   }
 
   try {
-    const id = await createProject(parsed.data.proyecto);
+    const cantidad = await countProjectsByOwner(visitor.ownerTokenHash);
+    if (cantidad >= MAX_PROJECTS_PER_VISITOR) {
+      return NextResponse.json(
+        {
+          error: `Llegaste al límite de ${MAX_PROJECTS_PER_VISITOR} proyectos guardados; eliminá alguno para crear otro`,
+        },
+        { status: 409 },
+      );
+    }
+
+    const id = await createProject(parsed.data.proyecto, visitor.ownerTokenHash);
     return NextResponse.json({ id }, { status: 201 });
   } catch (e) {
     console.error("POST /api/projects", e);

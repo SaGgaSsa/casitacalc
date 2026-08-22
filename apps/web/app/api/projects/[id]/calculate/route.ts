@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { calculateAndSaveResult, getLatestResult } from "@casitacalc/db";
+import { requireProjectOwner } from "@/lib/api-auth";
 
 type Params = { params: Promise<{ id: string }> };
 
-/** POST /api/projects/[id]/calculate — recalcula y persiste el cómputo. */
-export async function POST(_request: Request, { params }: Params) {
+/** POST /api/projects/[id]/calculate — recalcula y persiste el cómputo (owner). */
+export async function POST(request: Request, { params }: Params) {
   const { id } = await params;
+  const owned = await requireProjectOwner(request, id);
+  if (!owned.ok) return owned.response;
 
   try {
     const result = await calculateAndSaveResult(id);
@@ -25,9 +28,12 @@ export async function POST(_request: Request, { params }: Params) {
   }
 }
 
-/** GET /api/projects/[id]/calculate — devuelve el último resultado guardado. */
-export async function GET(_request: Request, { params }: Params) {
+/** GET /api/projects/[id]/calculate — último resultado guardado (owner). */
+export async function GET(request: Request, { params }: Params) {
   const { id } = await params;
+  const owned = await requireProjectOwner(request, id);
+  if (!owned.ok) return owned.response;
+
   const result = await getLatestResult(id);
   if (!result) {
     return NextResponse.json({ error: "Sin resultados previos" }, { status: 404 });

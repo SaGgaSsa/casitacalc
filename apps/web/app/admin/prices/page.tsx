@@ -3,7 +3,8 @@ import { listMaterials } from "@casitacalc/db";
 
 export const dynamic = "force-dynamic";
 
-export default async function MaterialsPage() {
+/** /admin/prices — edición de precios globales (solo administración). */
+export default async function AdminPricesPage() {
   let materials: Awaited<ReturnType<typeof listMaterials>> = [];
   let dbError = false;
   try {
@@ -13,13 +14,13 @@ export default async function MaterialsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 md:px-8">
+    <div>
       <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
-        Materiales y precios
+        Precios
       </h1>
       <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-        Valores de referencia en ARS. Editá cada precio según tu proveedor o zona para
-        que los cómputos reflejen tu realidad.
+        Valores de referencia en ARS del catálogo global. Se aplican a los próximos
+        cálculos de todos los visitantes.
       </p>
 
       <div className="mt-6">

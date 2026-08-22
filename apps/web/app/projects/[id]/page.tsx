@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { ArrowLeft, PencilLine, TriangleAlert } from "lucide-react";
+import { ArrowLeft, PencilLine, ShieldCheck, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -8,8 +9,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { RecalculateButton } from "@/components/recalculate-button";
+import { ProjectSharePanel } from "@/components/project-share-panel";
 import { getProjectFull, getLatestResult } from "@casitacalc/db";
+import { MODERATION_LABELS, VISIBILITY_LABELS } from "@casitacalc/shared";
 import { formatMoney } from "@/lib/format";
+import { getAnonymousVisitor } from "@/lib/visitor-server";
+import { getAdminSession } from "@/lib/admin";
 
 export default async function ProjectDetailPage({
   params,
@@ -30,6 +35,28 @@ export default async function ProjectDetailPage({
     );
   }
 
+  // Ownership en servidor: solo el dueño (o un admin) abre el proyecto acá.
+  const [visitor, admin] = await Promise.all([getAnonymousVisitor(), getAdminSession()]);
+  const esDueno =
+    visitor !== null && visitor.ownerTokenHash === project.ownerTokenHash;
+
+  if (!esDueno && !admin) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-16 text-center md:px-8">
+        <TriangleAlert className="mx-auto size-10 text-muted-foreground" />
+        <h1 className="mt-4 font-heading text-xl font-semibold text-foreground">
+          Este proyecto no te pertenece
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Los proyectos se asocian a la cookie de este navegador.
+        </p>
+        <Button asChild className="mt-6">
+          <Link href="/projects">Ir a mis proyectos</Link>
+        </Button>
+      </div>
+    );
+  }
+
   const result = await getLatestResult(id);
   const sup = Number(project.anchoM) * Number(project.largoM);
   const sistema = project.sistemaConstructivo.replace(/_/g, " ").toLowerCase();
@@ -41,7 +68,7 @@ export default async function ProjectDetailPage({
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
-        Proyectos
+        Mis proyectos
       </Link>
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
@@ -49,7 +76,24 @@ export default async function ProjectDetailPage({
           <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
             {project.nombreProyecto}
           </h1>
-          <p className="mt-0.5 font-mono text-sm text-muted-foreground">ID: {project.id}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <Badge variant={project.visibility === "PRIVATE" ? "outline" : "secondary"}>
+              {VISIBILITY_LABELS[project.visibility]}
+            </Badge>
+            {project.moderationStatus !== "NONE" && (
+              <Badge
+                variant={
+                  project.moderationStatus === "APPROVED" ||
+                  project.moderationStatus === "PENDING"
+                    ? "default"
+                    : "destructive"
+                }
+              >
+                <ShieldCheck className="size-3" />
+                {MODERATION_LABELS[project.moderationStatus]}
+              </Badge>
+            )}
+          </div>
         </div>
         <div className="flex gap-2">
           <Button asChild variant="outline">
@@ -81,6 +125,16 @@ export default async function ProjectDetailPage({
           <Dato etiqueta="Aberturas" valor={String(project.openings.length)} />
         </CardContent>
       </Card>
+
+      {/* Compartir y publicación */}
+      <div className="mt-6">
+        <ProjectSharePanel
+          projectId={project.id}
+          visibility={project.visibility}
+          moderationStatus={project.moderationStatus}
+          shareToken={project.shareToken}
+        />
+      </div>
 
       {/* Último resultado */}
       <div className="mt-6">

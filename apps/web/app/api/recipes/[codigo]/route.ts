@@ -1,11 +1,18 @@
 import { NextResponse } from "next/server";
 import { UpdateRecipeSchema } from "@casitacalc/shared";
 import { updateRecipeItems } from "@casitacalc/db";
+import {
+  adminRequiredResponse,
+  requireAdminApi,
+} from "@/lib/api-auth";
 
 type Params = { params: Promise<{ codigo: string }> };
 
-/** PUT /api/recipes/[codigo] — reemplaza los ítems de una receta. */
+/** PUT /api/recipes/[codigo] — reemplaza los ítems de una receta (requiere admin). */
 export async function PUT(request: Request, { params }: Params) {
+  const admin = await requireAdminApi();
+  if (!admin) return adminRequiredResponse();
+
   const { codigo } = await params;
 
   let body: unknown;

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Hanken_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
 import { AppShell } from "@/components/app-shell";
+import { getAdminSession } from "@/lib/admin";
 import "./globals.css";
 
 const inter = Inter({
@@ -25,14 +26,15 @@ export const metadata: Metadata = {
     "Calculá los materiales necesarios para construir tu vivienda y ajustá los precios según tu zona.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const admin = await getAdminSession();
   return (
     <html
       lang="es"
       className={`${inter.variable} ${hankenGrotesk.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AppShell>{children}</AppShell>
+        <AppShell isAdmin={admin !== null}>{children}</AppShell>
       </body>
     </html>
   );
