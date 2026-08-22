@@ -7,7 +7,7 @@ services:
     runtime: node
     plan: free
     region: virginia
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm db:migrate && pnpm db:seed && pnpm build
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build && pnpm db:migrate && pnpm db:seed
     startCommand: pnpm --filter @casitacalc/web start
     healthCheckPath: /
     envVars:
