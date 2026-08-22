@@ -202,5 +202,18 @@ export async function getLatestResult(projectId: string) {
     orderBy: { createdAt: "desc" },
     include: { items: true },
   });
-  return row ? resultToDomain(row) : null;
+  if (!row) return null;
+
+  const domain = resultToDomain(row);
+
+  // Los subtotales por rubro son derivados: se reconstruyen desde los ítems.
+  const subtotalesPorRubro: Record<string, number> = {};
+  for (const item of domain.items) {
+    if (item.subtotal !== undefined) {
+      const previo = subtotalesPorRubro[item.rubro] ?? 0;
+      subtotalesPorRubro[item.rubro] = Math.round((previo + item.subtotal) * 100) / 100;
+    }
+  }
+
+  return { ...domain, subtotalesPorRubro };
 }
