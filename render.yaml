@@ -1,0 +1,28 @@
+# Blueprint de Render: https://render.com/docs/blueprint-spec
+# Crear el Web Service y la base desde la UI con "New → Blueprint" apuntando al repo.
+
+services:
+  - type: web
+    name: casitacalc-web
+    runtime: node
+    plan: free
+    region: virginia
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm db:migrate && pnpm build
+    startCommand: pnpm --filter @casitacalc/web start
+    healthCheckPath: /
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: casitacalc-db
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+
+databases:
+  - name: casitacalc-db
+    plan: free
+    region: virginia
+    databaseName: casitacalc
+    user: casitacalc

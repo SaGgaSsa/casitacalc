@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CasitaCalc - Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700&amp;family=Inter:wght@400;500;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-container": "#3baea1",
+                        "on-primary-container": "#ffffff",
+                        "tertiary-fixed": "#89f5e7",
+                        "secondary-fixed-dim": "#bec6e0",
+                        "on-tertiary-fixed": "#00201d",
+                        "on-secondary-container": "#5c647a",
+                        "surface-container-high": "#dde9ff",
+                        "surface-container": "#f1f5f9",
+                        "on-secondary-fixed": "#131b2e",
+                        "inverse-primary": "#ffb786",
+                        "on-secondary-fixed-variant": "#3f465c",
+                        "primary-fixed": "#ffdcc6",
+                        "tertiary": "#006a61",
+                        "on-background": "#0d1c2f",
+                        "on-surface": "#0d1c2f",
+                        "error": "#ba1a1a",
+                        "inverse-surface": "#233144",
+                        "error-container": "#ffdad6",
+                        "surface-dim": "#ccdbf4",
+                        "surface-bright": "#f8f9ff",
+                        "primary-fixed-dim": "#ffb786",
+                        "tertiary-fixed-dim": "#6bd8cb",
+                        "on-primary-fixed-variant": "#723600",
+                        "outline-variant": "#e2e8f0",
+                        "surface-container-lowest": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "surface-container-low": "#eff4ff",
+                        "inverse-on-surface": "#ebf1ff",
+                        "surface-tint": "#964900",
+                        "secondary": "#64748b",
+                        "on-tertiary-fixed-variant": "#005049",
+                        "on-primary-fixed": "#311300",
+                        "secondary-fixed": "#dae2fd",
+                        "primary-container": "#f57c00",
+                        "surface": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "surface-variant": "#d5e3fd",
+                        "on-error": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "surface-container-highest": "#d5e3fd",
+                        "on-tertiary-container": "#003c36",
+                        "secondary-container": "#f8fafc",
+                        "primary": "#f57c00",
+                        "on-secondary": "#ffffff",
+                        "background": "#f8fafc",
+                        "outline": "#cbd5e1",
+                        "on-surface-variant": "#475569"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.375rem",
+                        "xl": "0.5rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "sm": "8px",
+                        "xs": "4px",
+                        "margin-desktop": "32px",
+                        "max-width": "1280px",
+                        "base": "4px",
+                        "lg": "24px",
+                        "xl": "32px",
+                        "md": "16px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "label-caps": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "data-mono": ["JetBrains Mono"],
+                        "display": ["Inter"],
+                        "body-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "body-sm": ["13px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "label-caps": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+                        "headline-md": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "data-mono": ["13px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "display": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "body-lg": ["15px", { "lineHeight": "24px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-lg min-h-screen flex flex-col md:flex-row">
+<!-- SideNavBar (Desktop) -->
+<nav class="hidden md:flex flex-col h-screen w-64 fixed left-0 top-0 bg-surface-container border-r border-outline-variant py-lg gap-sm z-20">
+<div class="px-md mb-lg">
+<h1 class="font-headline-md text-headline-md text-on-surface mb-xs font-bold">CasitaCalc</h1>
+</div>
+<div class="flex flex-col gap-xs flex-grow">
+<!-- Active Navigation -->
+<a class="bg-primary/10 text-primary font-medium rounded mx-2 px-md py-sm flex items-center gap-md" href="#">
+<span class="material-symbols-outlined" data-icon="home" data-weight="fill" style="font-variation-settings: 'FILL' 1;">home</span>
+                Inicio
+            </a>
+<!-- Inactive Navigation -->
+<a class="text-on-surface-variant hover:bg-secondary-container mx-2 px-md py-sm flex items-center gap-md rounded transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="folder">folder</span>
+                Proyectos
+            </a>
+<a class="text-on-surface-variant hover:bg-secondary-container mx-2 px-md py-sm flex items-center gap-md rounded transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="add_box">add_box</span>
+                Nuevo cálculo
+            </a>
+<a class="text-on-surface-variant hover:bg-secondary-container mx-2 px-md py-sm flex items-center gap-md rounded transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="category">category</span>
+                Materiales
+            </a>
+<a class="text-on-surface-variant hover:bg-secondary-container mx-2 px-md py-sm flex items-center gap-md rounded transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="architecture">architecture</span>
+                Recetas
+            </a>
+</div>
+<div class="px-md mt-auto flex flex-col gap-xs">
+<a class="text-on-surface-variant hover:bg-secondary-container px-md py-sm flex items-center gap-md rounded transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+                Configuración
+            </a>
+</div>
+</nav>
+<!-- Main Content Wrapper -->
+<div class="flex-grow flex flex-col md:ml-64 w-full md:w-[calc(100%-16rem)]">
+<!-- TopAppBar -->
+<header class="w-full top-0 sticky bg-surface border-b border-outline-variant flex justify-between items-center px-margin-mobile md:px-margin-desktop py-sm z-10">
+<!-- Mobile Menu Toggle -->
+<button class="md:hidden text-on-surface-variant hover:text-primary transition-colors cursor-pointer active:opacity-70 p-xs">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<!-- Brand -->
+<div class="font-headline-md text-headline-md font-bold text-on-surface md:hidden">CasitaCalc</div>
+<div class="hidden md:block"></div> <!-- Spacer for flex-between -->
+<!-- Actions -->
+<div class="flex items-center gap-sm">
+<div class="flex items-center gap-xs cursor-pointer hover:bg-surface-container p-xs rounded transition-colors">
+<div class="w-8 h-8 bg-secondary-container rounded-full flex items-center justify-center text-on-surface-variant font-label-caps">
+        US
+    </div>
+<span class="material-symbols-outlined text-on-surface-variant text-sm">expand_more</span>
+</div>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="flex-grow p-margin-mobile md:p-margin-desktop bg-background">
+<div class="max-w-max-width mx-auto">
+<!-- Welcome Section -->
+<div class="mb-lg">
+<h2 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface mb-xs">Calculadora de materiales</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-3xl">Calculá los materiales necesarios para construir tu vivienda y ajustá los precios según tu zona.</p>
+</div>
+<!-- Main CTA -->
+<div class="bg-surface border border-outline-variant rounded-lg p-lg mb-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-lg shadow-sm">
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-xs">Calcular una vivienda</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant max-w-xl">Ingresá medidas, paredes, techo, aberturas y baños para obtener un cómputo detallado de materiales.</p>
+</div>
+<button class="bg-primary text-on-primary-container font-label-caps text-label-caps py-md px-xl rounded uppercase font-bold hover:bg-primary/90 transition-colors whitespace-nowrap shadow-sm">
+        COMENZAR CÁLCULO
+    </button>
+</div>
+<!-- Quick Stats -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-md mb-xl">
+<div class="bg-surface border border-outline-variant p-md rounded flex flex-col justify-between shadow-sm">
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-xs">Proyectos Guardados</p>
+<p class="font-headline-lg text-headline-lg text-on-surface">3</p>
+</div>
+</div>
+<div class="bg-surface border border-outline-variant p-md rounded flex flex-col justify-between shadow-sm">
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-xs">Último Cálculo</p>
+<p class="font-body-lg text-body-lg text-on-surface font-medium truncate">Casa propia</p>
+<p class="font-data-mono text-data-mono text-primary mt-xs">$ 54.000.000</p>
+</div>
+</div>
+<div class="bg-surface border border-outline-variant p-md rounded flex flex-col justify-between shadow-sm">
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-xs">Precios de Referencia</p>
+<p class="font-body-lg text-body-lg text-on-surface font-medium">Actualizados</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-xs flex items-center gap-xs"><span class="material-symbols-outlined text-[16px]">update</span> Hoy, 08:30 AM</p>
+</div>
+</div>
+</div>
+<!-- Main Layout Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-lg">
+<!-- Left Column (Projects) -->
+<div class="lg:col-span-8 flex flex-col gap-lg">
+<!-- Recent Projects Table -->
+<div class="bg-surface border border-outline-variant rounded shadow-sm overflow-hidden">
+<div class="p-md border-b border-outline-variant flex justify-between items-center bg-surface">
+<h3 class="font-headline-md text-headline-md text-on-surface">Proyectos Recientes</h3>
+<button class="text-primary font-label-caps text-label-caps uppercase hover:underline">Ver Todos</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-secondary-container/50 border-b border-outline-variant font-label-caps text-label-caps text-on-surface-variant uppercase">
+<th class="p-md font-semibold whitespace-nowrap">Proyecto</th>
+<th class="p-md font-semibold text-right whitespace-nowrap">Sup. (m²)</th>
+<th class="p-md font-semibold whitespace-nowrap">Sistema Constructivo</th>
+<th class="p-md font-semibold whitespace-nowrap">Fecha</th>
+<th class="p-md font-semibold text-right whitespace-nowrap">Costo Estimado</th>
+<th class="p-md font-semibold text-center whitespace-nowrap">Acción</th>
+</tr>
+</thead>
+<tbody class="font-body-sm text-body-sm text-on-surface">
+<tr class="border-b border-outline-variant hover:bg-surface-container/50 transition-colors">
+<td class="p-md font-medium">Casa propia</td>
+<td class="p-md font-data-mono text-data-mono text-right">85</td>
+<td class="p-md text-on-surface-variant">Ladrillo hueco</td>
+<td class="p-md text-on-surface-variant font-data-mono">20/08/2026</td>
+<td class="p-md font-data-mono text-data-mono text-right">$ 54.000.000</td>
+<td class="p-md text-center">
+<button class="text-primary hover:text-primary/80 transition-colors p-xs" title="Ver detalle">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-surface-container/50 transition-colors">
+<td class="p-md font-medium">Ampliación quincho</td>
+<td class="p-md font-data-mono text-data-mono text-right">45</td>
+<td class="p-md text-on-surface-variant">Ladrillo común</td>
+<td class="p-md text-on-surface-variant font-data-mono">15/07/2026</td>
+<td class="p-md font-data-mono text-data-mono text-right">$ 18.500.000</td>
+<td class="p-md text-center">
+<button class="text-primary hover:text-primary/80 transition-colors p-xs" title="Ver detalle">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-surface-container/50 transition-colors">
+<td class="p-md font-medium">Local comercial</td>
+<td class="p-md font-data-mono text-data-mono text-right">120</td>
+<td class="p-md text-on-surface-variant">Steel frame</td>
+<td class="p-md text-on-surface-variant font-data-mono">02/06/2026</td>
+<td class="p-md font-data-mono text-data-mono text-right">$ 62.100.000</td>
+<td class="p-md text-center">
+<button class="text-primary hover:text-primary/80 transition-colors p-xs" title="Ver detalle">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<!-- Right Column (Market Prices) -->
+<div class="lg:col-span-4">
+<div class="bg-surface border border-outline-variant rounded shadow-sm flex flex-col">
+<div class="p-md border-b border-outline-variant flex justify-between items-center bg-surface">
+<h3 class="font-headline-md text-headline-md text-on-surface flex items-center gap-xs">
+<span class="material-symbols-outlined text-on-surface-variant">payments</span>
+                                    Precios de Referencia
+                                </h3>
+</div>
+<div class="p-md border-b border-outline-variant bg-surface-container/30">
+<p class="font-body-sm text-body-sm text-on-surface-variant">Valores promedio. Ajustalos para mayor precisión en tus cómputos locales.</p>
+</div>
+<div class="flex flex-col">
+<!-- Price Item 1 -->
+<div class="flex justify-between items-center p-md border-b border-outline-variant/50 hover:bg-surface-container/30 transition-colors">
+<div>
+<span class="block font-body-sm text-body-sm text-on-surface font-medium">Ladrillo hueco 18x18x33</span>
+<span class="block text-[11px] text-on-surface-variant mt-0.5">Act: 15/08/2026</span>
+</div>
+<span class="font-data-mono text-data-mono text-on-surface text-right">$ 650 <span class="text-on-surface-variant text-[11px] block">/ un</span></span>
+</div>
+<!-- Price Item 2 -->
+<div class="flex justify-between items-center p-md border-b border-outline-variant/50 hover:bg-surface-container/30 transition-colors">
+<div>
+<span class="block font-body-sm text-body-sm text-on-surface font-medium">Cemento Portland 50 kg</span>
+<span class="block text-[11px] text-on-surface-variant mt-0.5">Act: 15/08/2026</span>
+</div>
+<span class="font-data-mono text-data-mono text-on-surface text-right">$ 8.500 <span class="text-on-surface-variant text-[11px] block">/ bls</span></span>
+</div>
+<!-- Price Item 3 -->
+<div class="flex justify-between items-center p-md border-b border-outline-variant/50 hover:bg-surface-container/30 transition-colors">
+<div>
+<span class="block font-body-sm text-body-sm text-on-surface font-medium">Cal hidratada 25 kg</span>
+<span class="block text-[11px] text-on-surface-variant mt-0.5">Act: 10/08/2026</span>
+</div>
+<span class="font-data-mono text-data-mono text-on-surface text-right">$ 4.200 <span class="text-on-surface-variant text-[11px] block">/ bls</span></span>
+</div>
+<!-- Price Item 4 -->
+<div class="flex justify-between items-center p-md border-b border-outline-variant/50 hover:bg-surface-container/30 transition-colors">
+<div>
+<span class="block font-body-sm text-body-sm text-on-surface font-medium">Arena de construcción</span>
+<span class="block text-[11px] text-on-surface-variant mt-0.5">Act: 10/08/2026</span>
+</div>
+<span class="font-data-mono text-data-mono text-on-surface text-right">$ 25.000 <span class="text-on-surface-variant text-[11px] block">/ m³</span></span>
+</div>
+<!-- Price Item 5 -->
+<div class="flex justify-between items-center p-md hover:bg-surface-container/30 transition-colors">
+<div>
+<span class="block font-body-sm text-body-sm text-on-surface font-medium">Chapa trapezoidal C25</span>
+<span class="block text-[11px] text-on-surface-variant mt-0.5">Act: 01/08/2026</span>
+</div>
+<span class="font-data-mono text-data-mono text-on-surface text-right">$ 12.500 <span class="text-on-surface-variant text-[11px] block">/ ml</span></span>
+</div>
+</div>
+<div class="p-md bg-surface border-t border-outline-variant">
+<button class="w-full bg-surface border border-primary text-primary font-label-caps text-label-caps py-sm px-md rounded uppercase hover:bg-primary/5 transition-colors flex items-center justify-center gap-sm">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+                                    EDITAR PRECIOS POR ZONA
+                                </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

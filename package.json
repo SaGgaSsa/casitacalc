@@ -1,0 +1,22 @@
+{
+  "name": "casitacalc",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Calculadora Argentina de Materiales para Vivienda",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @casitacalc/web dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm --filter @casitacalc/web lint",
+    "db:migrate": "pnpm --filter @casitacalc/db migrate",
+    "db:seed": "pnpm --filter @casitacalc/db seed",
+    "db:studio": "pnpm --filter @casitacalc/db studio"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

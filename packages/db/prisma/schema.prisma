@@ -1,0 +1,115 @@
+// CasitaCalc — schema Prisma (PostgreSQL)
+// Entidades: Project, Opening, Material, Recipe, RecipeItem,
+// CalculationResult(+items), PriceList (futura para proveedores).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id                  String   @id @default(cuid())
+  nombreProyecto      String
+  anchoM              Decimal  @db.Decimal(8, 2)
+  largoM              Decimal  @db.Decimal(8, 2)
+  alturaParedesM      Decimal  @db.Decimal(5, 2)
+  sistemaConstructivo String
+  tipoTecho           String
+  anguloTechoGrados   Decimal  @db.Decimal(5, 2)
+  cantidadBanios      Int
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  openings Opening[]
+  results  CalculationResult[]
+}
+
+model Opening {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  tipo     String
+  anchoM   Decimal @db.Decimal(6, 2)
+  altoM    Decimal @db.Decimal(6, 2)
+  cantidad Int
+
+  @@index([projectId])
+}
+
+model Material {
+  id                       String    @id @default(cuid())
+  codigo                   String    @unique
+  nombre                   String
+  categoria                String
+  unidad                   String
+  precioDefault            Decimal   @db.Decimal(14, 2)
+  precioActual             Decimal   @db.Decimal(14, 2)
+  fechaActualizacionPrecio DateTime?
+  fuente                   String?
+}
+
+model Recipe {
+  id                  String  @id @default(cuid())
+  codigo              String  @unique
+  rubro               String
+  sistemaConstructivo String?
+  tipoTecho           String?
+
+  items RecipeItem[]
+}
+
+model RecipeItem {
+  id             String  @id @default(cuid())
+  recipeId       String
+  recipe         Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  codigoMaterial String
+  cantidadPorUnidad Decimal @db.Decimal(12, 4)
+  desperdicioPct    Decimal @db.Decimal(5, 2)
+
+  @@index([recipeId])
+}
+
+model CalculationResult {
+  id           String  @id @default(cuid())
+  projectId    String
+  project      Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  totalGeneral Decimal @db.Decimal(16, 2)
+  geometriaJson Json
+  createdAt    DateTime @default(now())
+
+  items CalculationResultItem[]
+
+  @@index([projectId])
+}
+
+model CalculationResultItem {
+  id             String            @id @default(cuid())
+  resultId       String
+  result         CalculationResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
+
+  codigoMaterial String
+  nombreMaterial String
+  rubro          String
+  cantidad       Decimal  @db.Decimal(14, 2)
+  unidad         String
+  desperdicioPct Decimal  @db.Decimal(5, 2)
+  cantidadFinal  Decimal  @db.Decimal(14, 2)
+  precioUnitario Decimal? @db.Decimal(14, 2)
+  subtotal       Decimal? @db.Decimal(14, 2)
+
+  @@index([resultId])
+}
+
+/// Reservado para futuros proveedores de precios (CSV, EasyPrice, MercadoLibre).
+model PriceList {
+  id        String   @id @default(cuid())
+  nombre    String
+  fuente    String
+  activa    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
