@@ -7,6 +7,7 @@ import {
   FolderOpen,
   Home,
   Menu,
+  Package,
   Shield,
   SquarePlus,
   X,
@@ -15,6 +16,7 @@ import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/", label: "Inicio", icon: Home, exact: true },
+  { href: "/materials", label: "Materiales", icon: Package, exact: true },
   { href: "/projects", label: "Mis proyectos", icon: FolderOpen, exact: false },
   { href: "/projects/new", label: "Nuevo cálculo", icon: SquarePlus, exact: true },
 ] as const;
@@ -69,11 +71,6 @@ function NavLinks({
           </Link>
         )}
       </nav>
-      <div className="mt-auto flex flex-col gap-1 px-3 pb-6">
-        <p className="px-4 text-[11px] leading-relaxed text-muted-foreground">
-          Tus proyectos se guardan en este navegador mediante una cookie anónima.
-        </p>
-      </div>
     </>
   );
 }

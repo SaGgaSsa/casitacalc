@@ -96,8 +96,7 @@ export default async function DashboardPage() {
         </h1>
         <p className="mt-2 max-w-2xl text-base text-muted-foreground">
           Calculá los materiales necesarios para construir tu vivienda con precios de
-          referencia de Argentina. Sin registro: tus proyectos quedan guardados en este
-          navegador.
+          referencia de Argentina.
         </p>
 
         <div className="mt-10 flex flex-col items-start gap-6 rounded-xl border border-border bg-card p-8 shadow-sm md:flex-row md:items-center md:justify-between">
@@ -148,8 +147,8 @@ export default async function DashboardPage() {
           Calculadora de materiales
         </h1>
         <p className="mt-1 max-w-3xl text-sm text-muted-foreground md:text-base">
-          Calculá los materiales necesarios para construir tu vivienda. Tus proyectos se
-          guardan en este navegador sin necesidad de cuenta.
+          Calculá los materiales necesarios para construir tu vivienda con precios
+          de referencia de Argentina.
         </p>
       </div>
 
@@ -318,9 +317,12 @@ export default async function DashboardPage() {
               </h3>
               <Badge variant="secondary">ARS</Badge>
             </div>
-            <p className="border-b border-border bg-muted/40 px-6 py-3 text-xs text-muted-foreground">
-              Valores promedio del catálogo global; los administra CasitaCalc.
-            </p>
+            <div className="flex items-center justify-between gap-2 border-b border-border bg-muted/40 px-6 py-3 text-xs text-muted-foreground">
+              <span>Valores promedio del catálogo global.</span>
+              <Link href="/materials" className="shrink-0 font-medium text-primary hover:underline">
+                Ver catálogo completo
+              </Link>
+            </div>
             <ul>
               {data.destacados.map((m, index) => (
                 <li

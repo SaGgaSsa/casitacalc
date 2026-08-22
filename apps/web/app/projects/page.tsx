@@ -36,9 +36,6 @@ export default async function ProjectsPage() {
           <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
             Mis proyectos
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Guardados en este navegador mediante tu cookie anónima.
-          </p>
         </div>
         <Button asChild className="uppercase">
           <Link href="/projects/new">
