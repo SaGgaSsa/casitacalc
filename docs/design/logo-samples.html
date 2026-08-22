@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CasitaCalc — Muestras de logo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --surface: #f8f9ff;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --navy: #0d1c2f;
+    --navy-soft: #233144;
+    --orange: #f57c00;
+    --orange-deep: #964900;
+    --orange-light: #ffb786;
+    --muted: #574235;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--surface);
+    color: var(--navy);
+    padding: 40px;
+  }
+  header { max-width: 1080px; margin: 0 auto 32px; }
+  header h1 { font-family: 'Hanken Grotesk', sans-serif; font-size: 32px; font-weight: 700; letter-spacing: -0.02em; }
+  header p { color: var(--muted); margin-top: 6px; font-size: 14px; }
+
+  .grid { max-width: 1080px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+
+  .sample {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .sample h2 { font-family: 'Hanken Grotesk', sans-serif; font-size: 20px; font-weight: 600; }
+  .sample .desc { font-size: 13px; color: var(--muted); line-height: 20px; min-height: 40px; }
+
+  .stage {
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    padding: 28px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+  .stage.dark { background: var(--navy-soft); border-color: transparent; }
+  .stage.icon-only svg { width: 96px; height: 96px; }
+
+  .lockup { display: flex; align-items: center; gap: 14px; }
+  .lockup svg { width: 44px; height: 44px; }
+  .wordmark { font-family: 'Hanken Grotesk', sans-serif; font-weight: 700; font-size: 28px; letter-spacing: -0.02em; line-height: 1; }
+  .wordmark .calc { color: var(--orange); }
+  .dark .wordmark { color: #ffffff; }
+  .dark .wordmark .calc { color: var(--orange-light); }
+  .tagline { display: block; font-family: 'Inter', sans-serif; font-weight: 600; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+  .dark .tagline { color: #bec6e0; }
+
+  footer { max-width: 1080px; margin: 32px auto 0; font-size: 13px; color: var(--muted); }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Muestras de logo — CasitaCalc</h1>
+  <p>3 conceptos minimalistas siguiendo DESIGN.md: naranja de obra + azul arquitectónico, trazos gruesos con extremos redondeados, esquinas suaves.</p>
+</header>
+
+<div class="grid">
+
+  <!-- ============ OPCIÓN 1: CASA DE TRAZO ============ -->
+  <section class="sample">
+    <div>
+      <h2>Opción 1 · La casita</h2>
+      <p class="desc">Casa dibujada en un solo trazo grueso con puerta naranja. Literal, cálida y legible en cualquier tamaño. El trazo redondeado replica el radio de los componentes.</p>
+    </div>
+
+    <div class="stage dark icon-only">
+      <svg viewBox="0 0 64 64" fill="none" aria-label="CasitaCalc">
+        <path d="M15 27 L32 12 L49 27 V51 H15 Z" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M26 51 V39 a2 2 0 0 1 2-2 h8 a2 2 0 0 1 2 2 v12" fill="#ffb786"/>
+      </svg>
+    </div>
+
+    <div class="stage">
+      <div class="lockup">
+        <svg viewBox="0 0 64 64" fill="none">
+          <path d="M15 27 L32 12 L49 27 V51 H15 Z" stroke="#0d1c2f" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M26 51 V39 a2 2 0 0 1 2-2 h8 a2 2 0 0 1 2 2 v12" fill="#f57c00"/>
+        </svg>
+        <div>
+          <span class="wordmark">Casita<span class="calc">Calc</span></span>
+          <span class="tagline">Calculadora de obra</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ OPCIÓN 2: C DE BLOQUES ============ -->
+  <section class="sample">
+    <div>
+      <h2>Opción 2 · La C de ladrillos</h2>
+      <p class="desc">Una "C" construida con tres bloques separados por juntas, como un muro de ladrillos. El bloque naranja representa el material que se va colocando.</p>
+    </div>
+
+    <div class="stage dark icon-only">
+      <svg viewBox="0 0 64 64" fill="none" aria-label="CasitaCalc">
+        <rect x="10" y="10" width="44" height="14" rx="3" fill="#ffffff"/>
+        <rect x="10" y="28" width="14" height="12" rx="3" fill="#ffffff"/>
+        <rect x="10" y="44" width="30" height="10" rx="3" fill="#ffffff"/>
+        <rect x="44" y="44" width="10" height="10" rx="3" fill="#ffb786"/>
+      </svg>
+    </div>
+
+    <div class="stage">
+      <div class="lockup">
+        <svg viewBox="0 0 64 64" fill="none">
+          <rect x="10" y="10" width="44" height="14" rx="3" fill="#0d1c2f"/>
+          <rect x="10" y="28" width="14" height="12" rx="3" fill="#0d1c2f"/>
+          <rect x="10" y="44" width="30" height="10" rx="3" fill="#0d1c2f"/>
+          <rect x="44" y="44" width="10" height="10" rx="3" fill="#f57c00"/>
+        </svg>
+        <div>
+          <span class="wordmark">Casita<span class="calc">Calc</span></span>
+          <span class="tagline">Calculadora de obra</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ OPCIÓN 3: TILE MONOGRAMA ============ -->
+  <section class="sample">
+    <div>
+      <h2>Opción 3 · Monograma Cc</h2>
+      <p class="desc">Tile con esquinas suaves (radio 8px, como las cards) y el monograma "Cc" en Hanken Grotesk. Listo para favicon e ícono de app. La escuadra naranja aporta el toque técnico.</p>
+    </div>
+
+    <div class="stage dark icon-only">
+      <svg viewBox="0 0 64 64" fill="none" aria-label="CasitaCalc">
+        <rect x="4" y="4" width="56" height="56" rx="10" fill="#ffffff"/>
+        <path d="M41 22 a11 11 0 1 0 0 20" stroke="#0d1c2f" stroke-width="6" stroke-linecap="round" fill="none"/>
+        <circle cx="47" cy="42" r="4" fill="#964900"/>
+      </svg>
+    </div>
+
+    <div class="stage">
+      <div class="lockup">
+        <svg viewBox="0 0 64 64" fill="none">
+          <rect x="4" y="4" width="56" height="56" rx="10" fill="#0d1c2f"/>
+          <path d="M41 22 a11 11 0 1 0 0 20" stroke="#ffffff" stroke-width="6" stroke-linecap="round" fill="none"/>
+          <circle cx="47" cy="42" r="4" fill="#f57c00"/>
+        </svg>
+        <div>
+          <span class="wordmark">Casita<span class="calc">Calc</span></span>
+          <span class="tagline">Calculadora de obra</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  Paleta: naranja #f57c00 / #964900 · azul #0d1c2f · claro #ffb786 (sobre oscuro). Tipografía: Hanken Grotesk 700.
+  Elegí una opción y sobre esa base se hacen los logos finales (SVG optimizado, favicon, og-image, variantes mono).
+</footer>
+
+</body>
+</html>

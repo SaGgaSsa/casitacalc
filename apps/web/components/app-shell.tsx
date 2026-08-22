@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BrandMark } from "@/components/logo";
 
 const NAV_ITEMS = [
   { href: "/", label: "Inicio", icon: Home, exact: true },
@@ -77,13 +78,10 @@ function NavLinks({
 
 function Brand({ className }: { className?: string }) {
   return (
-    <div className={cn("flex items-center gap-2 px-6 py-5", className)}>
-      <span className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-        <Home className="size-4" />
-      </span>
-      <span className="font-heading text-lg font-bold tracking-tight text-foreground">
-        CasitaCalc
-      </span>
+    <div className={cn("px-6 py-5", className)}>
+      <Link href="/" aria-label="CasitaCalc — Inicio">
+        <BrandMark />
+      </Link>
     </div>
   );
 }
@@ -140,9 +138,7 @@ export function AppShell({
           >
             <Menu className="size-5" />
           </button>
-          <span className="font-heading text-base font-bold text-foreground">
-            CasitaCalc
-          </span>
+          <BrandMark className="px-1" />
           <Link
             href="/projects/new"
             aria-label="Nuevo cálculo"
