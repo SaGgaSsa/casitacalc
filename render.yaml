@@ -22,6 +22,9 @@ services:
       # Auth.js: secreto para firmar sesiones (se genera solo en el primer deploy)
       - key: AUTH_SECRET
         generateValue: true
+      # Requerido detrás del proxy HTTPS de Render
+      - key: AUTH_TRUST_HOST
+        value: "true"
       # Credenciales de Google OAuth: cargarlas desde la UI de Render
       # (redirect URI autorizada: https://<app>.onrender.com/api/auth/callback/google)
       - key: AUTH_GOOGLE_ID
