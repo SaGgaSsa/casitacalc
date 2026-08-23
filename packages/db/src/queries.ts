@@ -8,9 +8,11 @@ import {
   type UpdateMaterialPriceInput,
   type UpdateRecipeInput,
 } from "@casitacalc/shared";
+import { DEFAULT_REGION, type RegionCode } from "@casitacalc/shared";
 import type { ModerationStatus, Prisma, ProjectVisibility } from "@prisma/client";
 import { calculateHouse } from "@casitacalc/calculator-core";
 import { prisma } from "./client";
+import { getPublishedPrices, type PublishedPriceInfo } from "./pricing";
 import { materialToDomain, projectToHouseInput, recipeToDomain, resultToDomain } from "./mappers";
 
 // ── Proyectos ───────────────────────────────────────────────────────────────
@@ -285,6 +287,47 @@ export async function getPriceMap(): Promise<PriceMap> {
   return Object.fromEntries(rows.map((r) => [r.codigo, Number(r.precioActual)]));
 }
 
+export interface EffectivePriceInfo extends PublishedPriceInfo {
+  /** true si viene de un relevamiento PUBLISHED (no del precio base). */
+  fromReferencePrice: boolean;
+}
+
+/**
+ * Precio efectivo por material para una región: el último
+ * MaterialReferencePrice PUBLISHED pisa al precio base del catálogo.
+ * Nunca usa DRAFT (regla de consumo, sección precios).
+ */
+export async function getEffectivePrices(
+  region: RegionCode = DEFAULT_REGION,
+): Promise<Record<string, EffectivePriceInfo>> {
+  const [materials, published] = await Promise.all([
+    prisma.material.findMany({
+      select: {
+        codigo: true,
+        precioActual: true,
+        fuente: true,
+        fechaActualizacionPrecio: true,
+      },
+    }),
+    getPublishedPrices(region),
+  ]);
+
+  const effective: Record<string, EffectivePriceInfo> = {};
+  for (const m of materials) {
+    effective[m.codigo] = {
+      precio: Number(m.precioActual),
+      fuente: m.fuente,
+      fecha: m.fechaActualizacionPrecio?.toISOString() ?? new Date(0).toISOString(),
+      region,
+      fromReferencePrice: false,
+    };
+  }
+  for (const [codigo, info] of published) {
+    effective[codigo] = { ...info, fromReferencePrice: true };
+  }
+  return effective;
+}
+
 export async function updateMaterialPrice(
   id: string,
   input: UpdateMaterialPriceInput,
@@ -330,13 +373,20 @@ export async function updateRecipeItems(
 
 /**
  * Calcula un proyecto con recetas y precios de la DB y persiste el resultado.
- * Devuelve el cómputo completo.
+ * Usa el último precio PUBLISHED del relevamiento para la región (si existe)
+ * y conserva por ítem la fuente/fecha/región del precio aplicado.
  */
-export async function calculateAndSaveResult(projectId: string): Promise<CalculationResult | null> {
+export async function calculateAndSaveResult(
+  projectId: string,
+  region: RegionCode = DEFAULT_REGION,
+): Promise<CalculationResult | null> {
   const house = await getProjectHouseInput(projectId);
   if (!house) return null;
 
-  const [recipes, prices] = await Promise.all([listRecipes(), getPriceMap()]);
+  const [recipes, effectivePrices] = await Promise.all([listRecipes(), getEffectivePrices(region)]);
+  const prices: PriceMap = Object.fromEntries(
+    Object.entries(effectivePrices).map(([codigo, info]) => [codigo, info.precio]),
+  );
   const result = calculateHouse(house, { recipes, prices });
   if (result.items.length === 0) throw new Error("Las recetas están vacías; corré el seed");
 
@@ -346,17 +396,26 @@ export async function calculateAndSaveResult(projectId: string): Promise<Calcula
       totalGeneral: result.totalGeneral,
       geometriaJson: result.geometria,
       items: {
-        create: result.items.map((i) => ({
-          codigoMaterial: i.codigoMaterial,
-          nombreMaterial: i.nombreMaterial,
-          rubro: i.rubro,
-          cantidad: i.cantidad,
-          unidad: i.unidad,
-          desperdicioPct: i.desperdicioPct,
-          cantidadFinal: i.cantidadFinal,
-          precioUnitario: i.precioUnitario ?? null,
-          subtotal: i.subtotal ?? null,
-        })),
+        create: result.items.map((i) => {
+          const meta = effectivePrices[i.codigoMaterial];
+          const fechaMeta = meta?.fecha;
+          const tieneFechaReal =
+            fechaMeta !== undefined && fechaMeta !== new Date(0).toISOString();
+          return {
+            codigoMaterial: i.codigoMaterial,
+            nombreMaterial: i.nombreMaterial,
+            rubro: i.rubro,
+            cantidad: i.cantidad,
+            unidad: i.unidad,
+            desperdicioPct: i.desperdicioPct,
+            cantidadFinal: i.cantidadFinal,
+            precioUnitario: i.precioUnitario ?? null,
+            subtotal: i.subtotal ?? null,
+            fuentePrecio: meta?.fuente ?? null,
+            fechaPrecio: tieneFechaReal ? new Date(fechaMeta!) : null,
+            regionPrecio: meta && meta.fromReferencePrice ? meta.region : null,
+          };
+        }),
       },
     },
   });

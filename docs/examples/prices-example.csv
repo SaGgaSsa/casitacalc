@@ -1,0 +1,7 @@
+source,region,collected_at,material_code,external_id,title,url,currency,raw_price,package_quantity,package_unit,brand,seller,accepted,rejection_reason
+MERCADOLIBRE,GBA,2026-08-22,CEMENTO_PORTLAND_50KG,MLA123,"Cemento Holcim Plus 50 kg",https://articulo.mercadolibre.com.ar/MLA123,ARS,12500,1,BAG_50KG,Holcim,Vendedor X,true,
+EASY,GBA,2026-08-22,CEMENTO_PORTLAND_50KG,EASY456,Cemento Portland Holcim 50kg,https://www.easy.com.ar/p/456,ARS,12999,1,BAG_50KG,Holcim,Easy,true,
+MERCADOLIBRE,GBA,2026-08-22,LADRILLO_HUECO_18X18X33,MLA789,Pack 10 ladrillos huecos 18x18x33,https://articulo.mercadolibre.com.ar/MLA789,ARS,6500,10,UNIT,Loma Negra,Ferreteria Sur,true,
+EASY,GBA,2026-08-22,CAL_HIDRATADA_25KG,EASY101,Cal hidratada Molinos 25kg,https://www.easy.com.ar/p/101,ARS,5200,1,BAG_25KG,Molinos,Easy,true,
+EASY,GBA,2026-08-22,ARENA_GRUESA,EASY404,Arena gruesa m3,https://www.easy.com.ar/p/404,ARS,29500,1,M3,,Easy,true,
+MERCADOLIBRE,GBA,2026-08-22,CEMENTO_PORTLAND_50KG,MLA303,Cemento en bolsa de 25kg (unidad incorrecta para el código),https://articulo.mercadolibre.com.ar/MLA303,ARS,9900,1,BAG_25KG,,,false,INCOMPATIBLE_UNIT,

@@ -15,6 +15,9 @@ export default defineConfig({
     include: ["tests/**/*.test.ts"],
     globalSetup: "./tests/global-setup.mjs",
     setupFiles: ["./tests/setup.ts"],
+    // Los archivos comparten la MISMA DB de test: sin paralelismo entre
+    // archivos para evitar carreras con los deleteMany de limpieza.
+    fileParallelism: false,
     testTimeout: 30_000,
     hookTimeout: 60_000,
   },

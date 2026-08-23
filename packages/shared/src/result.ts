@@ -17,6 +17,10 @@ export const CalculationResultItemSchema = z.object({
   cantidadFinal: z.number().positive(),
   precioUnitario: z.number().nonnegative().optional(),
   subtotal: z.number().nonnegative().optional(),
+  /** Trazabilidad del precio aplicado (relevamiento publicado o catálogo). */
+  fuentePrecio: z.string().optional(),
+  fechaPrecio: z.string().datetime().optional(),
+  regionPrecio: z.string().optional(),
 });
 
 export type CalculationResultItem = z.infer<typeof CalculationResultItemSchema>;

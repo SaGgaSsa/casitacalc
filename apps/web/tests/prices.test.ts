@@ -1,0 +1,424 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { prisma } from "@casitacalc/db";
+
+import { POST as previewPOST } from "@/app/api/admin/prices/import/preview/route";
+import { POST as confirmPOST } from "@/app/api/admin/prices/import/confirm/route";
+import {
+  POST as publishPOST,
+} from "@/app/api/admin/prices/collections/[id]/publish/route";
+import {
+  POST as rejectPOST,
+} from "@/app/api/admin/prices/collections/[id]/reject/route";
+import {
+  POST as recalcPOST,
+} from "@/app/api/admin/prices/collections/[id]/recalculate/route";
+import { POST as excludePOST } from "@/app/api/admin/prices/observations/[id]/exclude/route";
+
+// Sesión admin mutable: null = visitante común; set = sesión de admin.
+vi.mock("@/auth", () => ({
+  auth: () => Promise.resolve((globalThis as Record<string, unknown>).__TEST_ADMIN_SESSION__ ?? null),
+}));
+
+function setAdminSession(email: string | null) {
+  (globalThis as Record<string, unknown>).__TEST_ADMIN_SESSION__ =
+    email === null ? undefined : { user: { email }, expires: "9999" };
+}
+
+async function params<T extends Record<string, string>>(v: T) {
+  return { params: Promise.resolve(v) };
+}
+
+const HEADER =
+  "source,region,collected_at,material_code,external_id,title,url,currency,raw_price,package_quantity,package_unit,brand,seller,accepted,rejection_reason";
+
+function fila(overrides: Partial<Record<string, string>> = {}, n = "1"): string {
+  return [
+    overrides.source ?? "MERCADOLIBRE",
+    overrides.region ?? "GBA",
+    overrides.collected_at ?? "2026-08-22",
+    overrides.material_code ?? "CEMENTO_PORTLAND_50KG",
+    overrides.external_id ?? `MLA-${n}`,
+    overrides.title ?? `Cemento prueba ${n}`,
+    overrides.url ?? `https://articulo.mercadolibre.com.ar/MLA${n}`,
+    overrides.currency ?? "ARS",
+    overrides.raw_price ?? "12500",
+    overrides.package_quantity ?? "1",
+    overrides.package_unit ?? "BAG_50KG",
+    overrides.brand ?? "",
+    overrides.seller ?? "",
+    overrides.accepted ?? "true",
+    overrides.rejection_reason ?? "",
+  ].join(",");
+}
+
+async function subirCsv(
+  filename: string,
+  lineas: string[],
+): Promise<Response> {
+  const content = [HEADER, ...lineas].join("\n");
+  return confirmPOST(
+    reqJson("/api/admin/prices/import/confirm", { filename, content }),
+  );
+}
+
+function reqJson(path: string, body: unknown): Request {
+  return new Request(`http://localhost:3000${path}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+beforeEach(async () => {
+  setAdminSession("admin@casitacalc.test");
+  await prisma.materialReferencePrice.deleteMany();
+  await prisma.priceObservation.deleteMany();
+  await prisma.priceCollection.deleteMany();
+
+  // La DB de test no corre el seed completo: fuentes mínimas para el importador.
+  for (const [code, name] of [
+    ["EASY", "Easy"],
+    ["MERCADOLIBRE", "Mercado Libre"],
+    ["MANUAL", "Manual"],
+  ] as const) {
+    await prisma.priceSource.upsert({
+      where: { code },
+      create: { code, name, enabled: true },
+      update: { enabled: true },
+    });
+  }
+
+  // Catálogo mínimo para los tests de precios.
+  const fecha = new Date("2026-01-01T00:00:00.000Z");
+  for (const m of [
+    { codigo: "CEMENTO_PORTLAND_50KG", nombre: "Cemento Portland 50 kg", categoria: "Aglomerantes", unidad: "bolsa", precioDefault: 9500 },
+    { codigo: "LADRILLO_HUECO_18X18X33", nombre: "Ladrillo hueco 18x18x33", categoria: "Mampostería", unidad: "un", precioDefault: 650 },
+    { codigo: "ARENA_GRUESA", nombre: "Arena gruesa", categoria: "Agregados", unidad: "m3", precioDefault: 28000 },
+  ]) {
+    await prisma.material.upsert({
+      where: { codigo: m.codigo },
+      create: { ...m, precioActual: m.precioDefault, fechaActualizacionPrecio: fecha, fuente: "Referencia demo" },
+      update: {},
+    });
+  }
+});
+
+describe("seguridad del importador", () => {
+  const body = { filename: "precios.csv", content: `${HEADER}\n${fila()}` };
+
+  it("rechaza sin sesión admin (401)", async () => {
+    setAdminSession(null);
+    expect((await previewPOST(reqJson("/preview", body))).status).toBe(401);
+    expect((await confirmPOST(reqJson("/confirm", body))).status).toBe(401);
+    expect((await publishPOST(new Request("http://localhost/x"), await params({ id: "x" }))).status).toBe(401);
+    expect((await rejectPOST(new Request("http://localhost/x"), await params({ id: "x" }))).status).toBe(401);
+    expect((await excludePOST(new Request("http://localhost/x"), await params({ id: "x" }))).status).toBe(401);
+  });
+
+  it("rechaza extensión no csv y archivo vacío", async () => {
+    const resXls = await previewPOST(reqJson("/preview", { filename: "a.xls", content: HEADER }));
+    expect(resXls.status).toBe(422);
+
+    const resVacio = await previewPOST(reqJson("/preview", { filename: "a.csv", content: "" }));
+    expect(resVacio.status).toBe(422);
+  });
+});
+
+describe("preview e importación", () => {
+  it("valida un CSV válido sin persistir nada (preview)", async () => {
+    const content = [HEADER, fila({}, "1"), fila({}, "2")].join("\n");
+    const res = await previewPOST(reqJson("/preview", { filename: "precios.csv", content }));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.totalRows).toBe(2);
+    expect(data.validRows).toBe(2);
+    expect(data.invalidRows).toBe(0);
+    expect(data.sources).toEqual(["MERCADOLIBRE"]);
+    expect(data.proposals[0]?.medianPrice).toBe(12500);
+
+    // El preview NO persiste.
+    expect(await prisma.priceObservation.count()).toBe(0);
+    expect(await prisma.priceCollection.count()).toBe(0);
+  });
+
+  it("clasifica filas inválidas sin invalidar el resto", async () => {
+    const lineas = [
+      fila({}, "1"),
+      fila({ material_code: "NO_EXISTE" }, "2"),
+      fila({ source: "SODIMAC" }, "3"),
+      fila({ raw_price: "-5" }, "5"),
+      fila({ package_quantity: "0" }, "6"),
+      fila({ package_unit: "CAJA_RARA" }, "7"),
+    ];
+    const res = await previewPOST(reqJson("/preview", { filename: "mix.csv", content: [HEADER, ...lineas].join("\n") }));
+    const data = await res.json();
+    expect(data.validRows).toBe(1);
+    expect(data.invalidRows).toBe(5);
+
+    const motivos = Object.fromEntries(data.rows.map((r: { reason: string | null; line: number }) => [r.line, r.reason]));
+    expect(motivos[3]).toBe("UNKNOWN_MATERIAL_CODE");
+    expect(motivos[4]).toBe("UNKNOWN_SOURCE");
+    expect(motivos[5]).toBe("NEGATIVE_PRICE");
+    expect(motivos[6]).toBe("INVALID_PACKAGE_QUANTITY");
+    expect(motivos[7]).toBe("UNKNOWN_PACKAGE_QUANTITY");
+  });
+
+  it("confirma la importación: colección + observaciones + referencias DRAFT", async () => {
+    // 5 filas válidas de cemento (mediana 12500) + 1 de ladrillos pack×10.
+    const lineas = [
+      fila({ raw_price: "12000" }, "10"),
+      fila({ raw_price: "12500" }, "11"),
+      fila({ raw_price: "12500" }, "12"),
+      fila({ raw_price: "13000", external_id: "", url: "https://tienda.com/p/9", title: "Cemento corralón" }, "13"),
+      fila({ raw_price: "99999" }, "14"),
+      fila({ material_code: "LADRILLO_HUECO_18X18X33", title: "Pack 10 ladrillos huecos", raw_price: "12000", package_quantity: "10", package_unit: "UNIT" }, "15"),
+    ];
+    const res = await subirCsv("precios-2026-08.csv", lineas);
+    expect(res.status).toBe(201);
+    const { id } = await res.json();
+
+    const collection = await prisma.priceCollection.findUniqueOrThrow({ where: { id } });
+    expect(collection.status).toBe("DRAFT");
+    expect(collection.totalRows).toBe(6);
+    expect(collection.acceptedRows).toBe(6);
+    expect(collection.createdBy).toBe("admin@casitacalc.test");
+
+    const obs = await prisma.priceObservation.findMany({ where: { collectionId: id } });
+    expect(obs).toHaveLength(6);
+    expect(obs.find((o) => o.title === "Cemento prueba 15")).toBeUndefined(); // esa fila era ladrillos
+
+    // Normalización server-side del pack de ladrillos.
+    const ladrillos = obs.find((o) => o.normalizedUnit === "un");
+    expect(ladrillos?.normalizedUnitPrice.toFixed(2)).toBe("1200.00");
+
+    const refs = await prisma.materialReferencePrice.findMany({ where: { collectionId: id } });
+    expect(refs).toHaveLength(2);
+    const cementoId = await materialId("CEMENTO_PORTLAND_50KG");
+    const refCemento = refs.find((r) => r.materialId === cementoId);
+    expect(refCemento?.price.toFixed(2)).toBe("12500.00"); // mediana, no promedio
+    expect(refCemento?.sampleSize).toBe(5);
+    expect(refCemento?.insufficientSample).toBe(false);
+    expect(refCemento?.status).toBe("DRAFT");
+
+    const ladrilloId = await materialId("LADRILLO_HUECO_18X18X33");
+    const refLadrillo = refs.find((r) => r.materialId === ladrilloId);
+    expect(refLadrillo?.sampleSize).toBe(1);
+    expect(refLadrillo?.insufficientSample).toBe(true); // menos de 5 muestras
+  });
+
+  it("no inserta duplicados silenciosos entre archivos", async () => {
+    const primera = await subirCsv("a.csv", [fila({}, "100")]);
+    expect(primera.status).toBe(201);
+    // Mismo externalId + misma fecha → DUPLICATE_IN_DB → nada válido que importar.
+    const segunda = await subirCsv("b.csv", [fila({}, "100")]);
+    expect(segunda.status).toBe(422);
+    const data = await segunda.json();
+    expect(data.code).toBe("NO_VALID_ROWS");
+    expect(await prisma.priceObservation.count()).toBe(1);
+  });
+
+  it("rechaza archivos que mezclan regiones", async () => {
+    const res = await previewPOST(
+      reqJson("/preview", {
+        filename: "mixto.csv",
+        content: [HEADER, fila({ region: "GBA" }), fila({ region: "CABA" })].join("\n"),
+      }),
+    );
+    expect(res.status).toBe(422);
+    const data = await res.json();
+    expect(data.code).toBe("MIXED_REGIONS");
+  });
+
+  it("rechaza encabezado incompleto", async () => {
+    const res = await previewPOST(
+      reqJson("/preview", {
+        filename: "mal.csv",
+        content: "source,title\nMERCADOLIBRE,Cemento",
+      }),
+    );
+    expect(res.status).toBe(422);
+    const data = await res.json();
+    expect(data.code).toBe("MISSING_HEADER");
+  });
+});
+
+describe("publicación y consumo del precio", () => {
+  it("publica referencias y las expone como último precio PUBLISHED", async () => {
+    const { id } = await importarColeccionConCemento();
+    expect(await prisma.priceObservation.count()).toBeGreaterThan(0);
+
+    // Antes de publicar: nada vigente.
+    const { getPublishedPrices } = await import("@casitacalc/db");
+    expect((await getPublishedPrices("GBA")).size).toBe(0);
+
+    const pubRes = await publishPOST(new Request("http://localhost/pub"), await params({ id }));
+    expect(pubRes.status).toBe(200);
+    const { published } = await pubRes.json();
+    expect(published).toBeGreaterThanOrEqual(1);
+
+    const collection = await prisma.priceCollection.findUniqueOrThrow({ where: { id } });
+    expect(collection.status).toBe("PUBLISHED");
+
+    const vigentes = await getPublishedPrices("GBA");
+    const cemento = vigentes.get("CEMENTO_PORTLAND_50KG");
+    expect(cemento?.precio).toBe(12500);
+    expect(cemento?.region).toBe("GBA");
+
+    // Otra región no ve este precio.
+    expect((await getPublishedPrices("CABA")).size).toBe(0);
+  });
+
+  it("el cálculo usa el precio publicado y conserva fuente/fecha/región por ítem", async () => {
+    const token = `${crypto.randomUUID()}.${crypto.randomUUID()}`;
+    const { createHash } = await import("node:crypto");
+    const hash = createHash("sha256").update(token).digest("hex");
+    const project = await prisma.project.create({
+      data: {
+        nombreProyecto: "Casa precios publicados",
+        anchoM: 8, largoM: 10, alturaParedesM: 2.7,
+        sistemaConstructivo: "LADRILLO_HUECO", tipoTecho: "CHAPA", anguloTechoGrados: 20,
+        cantidadBanios: 1, ownerTokenHash: hash,
+      },
+      select: { id: true },
+    });
+
+    try {
+      // Recetas mínimas: la DB de test no corre el seed completo.
+      const { DEFAULT_RECIPES } = await import("@casitacalc/calculator-core");
+      for (const recipe of DEFAULT_RECIPES) {
+        const existing = await prisma.recipe.findUnique({ where: { codigo: recipe.codigo } });
+        if (existing) continue;
+        await prisma.recipe.create({
+          data: {
+            codigo: recipe.codigo,
+            rubro: recipe.rubro,
+            sistemaConstructivo: recipe.sistemaConstructivo ?? null,
+            tipoTecho: recipe.tipoTecho ?? null,
+            items: {
+              create: [{ codigoMaterial: "CEMENTO_PORTLAND_50KG", cantidadPorUnidad: 0.1, desperdicioPct: 5 }],
+            },
+          },
+        });
+      }
+
+      // Sin publicar: usa precio base del catálogo (9500), sin región.
+      const { calculateAndSaveResult, getLatestResult } = await import("@casitacalc/db");
+      await calculateAndSaveResult(project.id);
+      let latest = await getLatestResult(project.id);
+      const cementoAntes = latest?.items.find((i) => i.codigoMaterial === "CEMENTO_PORTLAND_50KG");
+      expect(Number(cementoAntes?.precioUnitario)).toBe(9500);
+      expect(cementoAntes?.regionPrecio ?? null).toBeNull();
+
+      // Publica relevamiento con precio distinto.
+      const { id } = await importarColeccionConCemento("2026-08-20");
+      await publishPOST(new Request("http://localhost/pub"), await params({ id }));
+
+      await calculateAndSaveResult(project.id);
+      latest = await getLatestResult(project.id);
+      const cementoDespues = latest?.items.find((i) => i.codigoMaterial === "CEMENTO_PORTLAND_50KG");
+      expect(Number(cementoDespues?.precioUnitario)).toBe(12500);
+      expect(cementoDespues?.regionPrecio).toBe("GBA");
+      expect(cementoDespues?.fuentePrecio).toBe("Mercado Libre");
+      expect(cementoDespues?.fechaPrecio).toBeTruthy();
+    } finally {
+      await prisma.project.delete({ where: { id: project.id } }).catch(() => {});
+    }
+  });
+
+  it("historial inmutable con variación entre relevamientos", async () => {
+    const { getMaterialPriceHistory } = await import("@casitacalc/db");
+    await importarColeccionConCemento(
+      "2026-08-01",
+      [10000, 10500, 11000, 11500, 12000], // mediana 11000
+    );
+    const coleccion1 = await prisma.priceCollection.findFirstOrThrow({
+      orderBy: { collectedAt: "asc" },
+    });
+    await publishPOST(new Request("http://localhost/pub"), await params({ id: coleccion1.id }));
+
+    await importarColeccionConCemento(
+      "2026-08-21",
+      [12000, 12600, 13200, 13800, 14400], // mediana 13200
+    );
+    const coleccion2 = await prisma.priceCollection.findFirstOrThrow({
+      where: { collectedAt: { gt: coleccion1.collectedAt } },
+    });
+    await publishPOST(new Request("http://localhost/pub"), await params({ id: coleccion2.id }));
+
+    const historia = await getMaterialPriceHistory("CEMENTO_PORTLAND_50KG", "GBA");
+    const publicadas = historia.filter((h) => h.status === "PUBLISHED");
+    expect(publicadas).toHaveLength(2);
+    expect(publicadas[0]?.precio).toBe(11000);
+    expect(publicadas[0]?.variacionPct).toBeNull();
+    expect(publicadas[1]?.precio).toBe(13200);
+    expect(publicadas[1]?.variacionPct).toBe(20); // 11000 → 13200
+  });
+});
+
+describe("exclusión de observaciones y recálculo", () => {
+  it("excluir una observación recalcula la mediana en borrador", async () => {
+    const { id } = await importarColeccionConCemento();
+    const obs = await prisma.priceObservation.findMany({
+      where: { collectionId: id, accepted: true },
+    });
+    // Precios: 12000, 12500, 12500, 13000, 99999 → excluyo el outlier.
+    const outlier = obs.find((o) => Number(o.rawPrice) === 99999)!;
+    const exRes = await excludePOST(new Request("http://localhost/x"), await params({ id: outlier.id }));
+    expect(exRes.status).toBe(200);
+
+    const ref = await prisma.materialReferencePrice.findFirstOrThrow({
+      where: { collectionId: id, material: { codigo: "CEMENTO_PORTLAND_50KG" } },
+    });
+    expect(ref.sampleSize).toBe(4);
+    expect(ref.price.toFixed(2)).toBe("12500.00"); // mediana(12000,12500,12500,13000)
+
+    const obsActualizada = await prisma.priceObservation.findUniqueOrThrow({ where: { id: outlier.id } });
+    expect(obsActualizada.accepted).toBe(false);
+    expect(obsActualizada.rejectionReason).toBe("EXCLUDED_BY_ADMIN");
+  });
+
+  it("recalculate reconstruye todas las medianas draft", async () => {
+    const { id } = await importarColeccionConCemento();
+    await prisma.materialReferencePrice.updateMany({
+      where: { collectionId: id },
+      data: { price: 1, sampleSize: 99 },
+    });
+    const res = await recalcPOST(new Request("http://localhost/r"), await params({ id }));
+    expect(res.status).toBe(200);
+    const ref = await prisma.materialReferencePrice.findFirstOrThrow({
+      where: { collectionId: id, material: { codigo: "CEMENTO_PORTLAND_50KG" } },
+    });
+    expect(ref.price.toFixed(2)).toBe("12500.00");
+    expect(ref.sampleSize).toBe(5);
+  });
+
+  it("rechazar la colección marca sus referencias REJECTED", async () => {
+    const { id } = await importarColeccionConCemento();
+    const res = await rejectPOST(new Request("http://localhost/rj"), await params({ id }));
+    expect(res.status).toBe(200);
+    const refs = await prisma.materialReferencePrice.findMany({ where: { collectionId: id } });
+    expect(refs.every((r) => r.status === "REJECTED")).toBe(true);
+    const collection = await prisma.priceCollection.findUniqueOrThrow({ where: { id } });
+    expect(collection.status).toBe("REJECTED");
+  });
+});
+
+// ── helpers ──────────────────────────────────────────────────────────────────
+
+async function materialId(codigo: string): Promise<string> {
+  const m = await prisma.material.findUniqueOrThrow({ where: { codigo }, select: { id: true } });
+  return m.id;
+}
+
+/** Importa 5 observaciones de cemento; la mediana queda determinada por `precios`. */
+async function importarColeccionConCemento(
+  fecha = "2026-08-22",
+  precios: number[] = [12000, 12500, 12500, 13000, 99999], // mediana 12500
+): Promise<{ id: string }> {
+  const lineas = precios.map((p, i) =>
+    fila({ collected_at: fecha, raw_price: String(p) }, `c-${fecha}-${i}`),
+  );
+  const res = await subirCsv(`precios-${fecha}.csv`, lineas);
+  if (res.status !== 201) throw new Error(`import falló: ${res.status}`);
+  return res.json();
+}

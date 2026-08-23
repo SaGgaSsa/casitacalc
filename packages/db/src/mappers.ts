@@ -114,6 +114,9 @@ export function resultToDomain(r: ResultRow): CalculationResult {
       cantidadFinal: toNum(i.cantidadFinal),
       precioUnitario: i.precioUnitario === null ? undefined : toNum(i.precioUnitario),
       subtotal: i.subtotal === null ? undefined : toNum(i.subtotal),
+      fuentePrecio: i.fuentePrecio ?? undefined,
+      fechaPrecio: i.fechaPrecio?.toISOString(),
+      regionPrecio: i.regionPrecio ?? undefined,
     }),
   );
 

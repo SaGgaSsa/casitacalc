@@ -1,5 +1,5 @@
 import { DEFAULT_MATERIAL_CATALOG, DEFAULT_RECIPES } from "@casitacalc/calculator-core";
-import { Rubro, Unit } from "@casitacalc/shared";
+import { PriceSourceCode, PRICE_SOURCE_LABELS, Rubro, Unit } from "@casitacalc/shared";
 import { prisma } from "./client";
 
 /**
@@ -115,9 +115,22 @@ async function seedRecipes() {
   console.log(`✓ Recetas: ${DEFAULT_RECIPES.length}`);
 }
 
+/** Fuentes de precios iniciales (el mecanismo externo llega después). */
+async function seedPriceSources() {
+  for (const code of Object.values(PriceSourceCode)) {
+    await prisma.priceSource.upsert({
+      where: { code },
+      create: { code, name: PRICE_SOURCE_LABELS[code], enabled: true },
+      update: {},
+    });
+  }
+  console.log(`✓ Fuentes de precios: ${Object.values(PriceSourceCode).length}`);
+}
+
 async function main() {
   await seedMaterials();
   await seedRecipes();
+  await seedPriceSources();
 }
 
 main()
