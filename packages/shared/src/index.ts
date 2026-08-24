@@ -17,6 +17,7 @@ export * from "./material";
 export * from "./recipe";
 export * from "./project";
 export * from "./pricing";
+export * from "./materials-catalog";
 
 // ── DTOs de la API ──────────────────────────────────────────────────────────
 
