@@ -45,7 +45,8 @@ Validación antes de commitear: rebuild del paquete tocado → `pnpm -r typechec
 
 - Redondeo por unidad: `un`/`bolsa`/`ml` son **discretas** (ceil); `m2`/`m3`/`kg`/`l` continuas (2 decimales). `ml` es discreta porque chapas y tirantes se compran en metros enteros.
 - `subtotalesPorRubro` **no se persiste**: es derivado y se reconstruye desde los ítems en `getLatestResult()`.
-- Agregar sistema constructivo / tipo de techo / rubro = extender enums en `packages/shared/src/enums.ts` + filas de Recipe + entradas de catálogo en `recipes-defaults.ts`. El motor lanza errores descriptivos si falta una receta.
+- Agregar un **material** nuevo = una entrada en `packages/shared/src/materials.json` (fuente única: catálogo del motor, seed de DB y specs de relevamiento) + su precio en `PRECIOS_REFERENCIA` de `packages/db/src/seed.ts` (el seed falla si falta). `DEFAULT_MATERIAL_CATALOG` se deriva de ahí.
+- Agregar sistema constructivo / tipo de techo / rubro = extender enums en `packages/shared/src/enums.ts` + filas de Recipe en `recipes-defaults.ts`. El motor lanza errores descriptivos si falta una receta.
 - Seed idempotente (upserts), pero `seed.ts` falla si un material del catálogo no tiene precio en `PRECIOS_REFERENCIA`.
 - Prisma: editar schema → `cd packages/db && prisma migrate dev --name <x>` → rebuild del paquete (el cliente se genera en postinstall/build).
 

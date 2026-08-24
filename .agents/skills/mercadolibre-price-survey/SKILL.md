@@ -23,9 +23,14 @@ va a `report.md`.
 
 ## Entrada y salida
 
-- **QUÉ relevar**: `config/price-surveys/mercadolibre-price-specs.json`
-  (códigos, queries, presentación esperada, `excludeTerms`, min/target/maxSamples).
-  Nunca releves materiales fuera de ese archivo ni inventes códigos.
+- **QUÉ relevar**: dos archivos, en este orden:
+  1. `packages/shared/src/materials.json` — catálogo maestro: LA lista de
+     materiales existentes (codigo, nombre, categoria, unidad nominal).
+     Nunca releves materiales fuera de ese archivo ni inventes códigos.
+  2. `config/price-surveys/mercadolibre-price-specs.json` — por material a
+     relevar: queries, excludeTerms, presentación esperada,
+     min/target/maxSamples, maxSamplesPerSeller. Solo se releva un material
+     si tiene entrada acá; los códigos siempre salen del catálogo maestro.
 - **Salida**: `data/price-surveys/mercadolibre/YYYY-MM-DD/prices.csv` +
   `report.md`, donde YYYY-MM-DD es la fecha real de la corrida.
 
