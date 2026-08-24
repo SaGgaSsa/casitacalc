@@ -28,3 +28,8 @@ packages/db/prisma/*.db
 # Misc
 *.log
 .turbo/
+
+# Spike Mercado Libre
+scripts/meli-spike/.env.meli
+scripts/meli-spike/.state.json
+scripts/meli-spike/certs/
