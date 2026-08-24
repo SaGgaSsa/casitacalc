@@ -1,5 +1,7 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { MATERIAL_CATALOG } from "@casitacalc/shared";
+import { MATERIAL_CATALOG, MATERIAL_CODES } from "@casitacalc/shared";
 
 describe("catálogo maestro de materiales", () => {
   it("carga las 23 entradas desde el archivo maestro", () => {
@@ -17,5 +19,26 @@ describe("catálogo maestro de materiales", () => {
   it("no tiene códigos duplicados", () => {
     const codigos = MATERIAL_CATALOG.map((m) => m.codigo);
     expect(new Set(codigos).size).toBe(codigos.length);
+  });
+});
+
+describe("drift: specs de relevamiento vs catálogo maestro", () => {
+  const SPECS_PATH = fileURLToPath(
+    new URL(
+      "../../../config/price-surveys/mercadolibre-price-specs.json",
+      import.meta.url,
+    ),
+  );
+
+  it("todo materialCode de las specs existe en el catálogo maestro", () => {
+    const specs = JSON.parse(readFileSync(SPECS_PATH, "utf8")) as {
+      materials: { materialCode: string }[];
+    };
+    for (const spec of specs.materials) {
+      expect(
+        MATERIAL_CODES.has(spec.materialCode),
+        `materialCode desconocido en specs: ${spec.materialCode}`,
+      ).toBe(true);
+    }
   });
 });
