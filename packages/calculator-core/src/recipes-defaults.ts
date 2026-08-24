@@ -1,5 +1,6 @@
 import {
   ConstructionSystem,
+  MATERIAL_CATALOG,
   RoofType,
   Rubro,
   Unit,
@@ -16,34 +17,12 @@ export interface MaterialCatalogEntry {
 export type MaterialCatalog = Record<string, MaterialCatalogEntry>;
 
 /**
- * Catálogo por defecto (referencia). En la app real viene de la tabla
- * `Material` de la base de datos vía el paquete `db`.
+ * Catálogo derivado del archivo maestro `packages/shared/src/materials.json`
+ * (fuente única compartida con el seed y el relevamiento de precios).
  */
-export const DEFAULT_MATERIAL_CATALOG: MaterialCatalog = {
-  LADRILLO_HUECO_18X18X33: { nombre: "Ladrillo hueco 18x18x33", unidad: Unit.UN },
-  CEMENTO_PORTLAND_50KG: { nombre: "Cemento Portland 50 kg", unidad: Unit.BOLSA },
-  CAL_HIDRATADA_25KG: { nombre: "Cal hidratada 25 kg", unidad: Unit.BOLSA },
-  ARENA_GRUESA: { nombre: "Arena gruesa de construcción", unidad: Unit.M3 },
-  ARENA_FINA: { nombre: "Arena fina", unidad: Unit.M3 },
-  PIEDRA_BOLA: { nombre: "Piedra bola 20/40", unidad: Unit.M3 },
-  ACERO_LOSA_ADL15: { nombre: "Acero para losa (malla + hierros)", unidad: Unit.KG },
-  CHAPA_TRAPEZOIDAL_C25: { nombre: "Chapa trapezoidal C25", unidad: Unit.ML },
-  TIRANTE_MADERA_2X3: { nombre: "Tirante de madera 2\"x3\"", unidad: Unit.ML },
-  TORNILLO_AUTOPERFORANTE: { nombre: "Tornillo autoperforante techa", unidad: Unit.UN },
-  FILM_BARRERA_HIDRICA: { nombre: "Film barrera de humedad", unidad: Unit.M2 },
-  INODORO_COMPLETO: { nombre: "Inodoro completo con mochila", unidad: Unit.UN },
-  LAVATORIO_PEDESTAL: { nombre: "Lavatorio con pedestal", unidad: Unit.UN },
-  GRIFERIA_LAVATORIO: { nombre: "Grifería de lavatorio", unidad: Unit.UN },
-  DUCHA_JUEGO: { nombre: "Juego de ducha", unidad: Unit.UN },
-  CANO_PVC_100_4M: { nombre: "Caño PVC 110 mm x 4 m", unidad: Unit.UN },
-  CANO_PVC_40_4M: { nombre: "Caño PVC 40 mm x 4 m", unidad: Unit.UN },
-  DESAGUE_PISO: { nombre: "Desagüe de piso", unidad: Unit.UN },
-  SIFON_LAVATORIO: { nombre: "Sifón lavatorio", unidad: Unit.UN },
-  CERAMICA_PISO: { nombre: "Cerámica de piso", unidad: Unit.M2 },
-  CERAMICA_PARED: { nombre: "Cerámica de pared", unidad: Unit.M2 },
-  PEGAMENTO_CERAMICO_30KG: { nombre: "Pegamento cerámico 30 kg", unidad: Unit.BOLSA },
-  PASTINA: { nombre: "Pastina", unidad: Unit.KG },
-};
+export const DEFAULT_MATERIAL_CATALOG: MaterialCatalog = Object.fromEntries(
+  MATERIAL_CATALOG.map((m) => [m.codigo, { nombre: m.nombre, unidad: m.unidad }]),
+);
 
 const D = { NINGUNO: 0, BAJO: 5, MEDIO: 10 };
 
