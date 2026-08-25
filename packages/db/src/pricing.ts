@@ -29,6 +29,7 @@ export interface PriceImportPreviewRow {
   materialCode: string | null;
   materialNombre: string | null;
   title: string;
+  url: string | null;
   rawPrice: number | null;
   packageQuantity: number | null;
   packageUnit: string | null;
@@ -43,6 +44,10 @@ export interface PriceImportPreviewProposal {
   sampleSize: number;
   medianPrice: number | null;
   insufficientSample: boolean;
+  /** Último precio PUBLISHED del material; null si nunca tuvo. */
+  previousPrice: number | null;
+  /** La mediana supera el umbral de inflación: requiere forceAll para importar. */
+  exceedsInflation: boolean;
 }
 
 /** Resultado de validar un archivo SIN persistir nada. */
@@ -50,6 +55,10 @@ export interface PriceImportPreview {
   filename: string;
   totalRows: number;
   validRows: number;
+  /** Filas válidas de materiales que NO superan el umbral: se importan sin force. */
+  importableRows: number;
+  /** Filas válidas de materiales marcados por inflación: requieren forceAll. */
+  flaggedRows: number;
   warningRows: number;
   invalidRows: number;
   parseErrors: { line: number; message: string }[];
@@ -205,6 +214,7 @@ export async function validatePriceCsv(input: {
       materialCode: dto?.materialCode ?? row.data.material_code?.toUpperCase() ?? null,
       materialNombre: dto ? materialInfo.get(dto.materialCode)?.nombre ?? null : null,
       title: dto?.title ?? row.data.title ?? "",
+      url: dto?.url ?? row.data.url?.trim() ?? null,
       rawPrice: dto?.rawPrice ?? null,
       packageQuantity: dto?.packageQuantity ?? null,
       packageUnit: dto?.packageUnit ?? row.data.package_unit?.toUpperCase() ?? null,
@@ -243,14 +253,21 @@ export async function validatePriceCsv(input: {
   const collectedAtMin = dates.length > 0 ? new Date(Math.min(...dates)) : new Date();
   const collectedAtMax = dates.length > 0 ? new Date(Math.max(...dates)) : new Date();
 
+  const publicados = await getPublishedPrices(regionParsed.data);
+  const previousPrices = new Map([...publicados].map(([codigo, info]) => [codigo, info.precio]));
   const { proposals, warnings } = computeReferenceProposals(
     accepted.map((a) => ({ materialCode: a.dto.materialCode, normalizedUnitPrice: a.normalizedUnitPrice })),
+    { previousPrices },
   );
+  const flaggedCodes = new Set(proposals.filter((p) => p.exceedsInflation).map((p) => p.materialCode));
+  const flaggedRows = accepted.filter((a) => flaggedCodes.has(a.dto.materialCode)).length;
 
   const preview: PriceImportPreview = {
     filename: input.filename,
     totalRows: parsed.rows.length,
     validRows: accepted.length,
+    importableRows: accepted.length - flaggedRows,
+    flaggedRows,
     warningRows: previewRows.filter((r) => r.status === RowStatus.WARNING).length,
     invalidRows: previewRows.filter((r) => r.status === RowStatus.INVALID).length + parsed.errors.length,
     parseErrors: parsed.errors,
@@ -269,6 +286,8 @@ export async function validatePriceCsv(input: {
       sampleSize: p.sampleSize,
       medianPrice: p.medianPrice,
       insufficientSample: p.insufficientSample,
+      previousPrice: p.previousPrice,
+      exceedsInflation: p.exceedsInflation,
     })),
     warnings,
   };
@@ -300,13 +319,28 @@ export async function confirmPriceImport(input: {
   filename: string;
   content: string;
   createdBy: string;
+  /** Importa también materiales marcados por superar el umbral de inflación. */
+  forceAll?: boolean;
 }): Promise<{ collectionId: string; preview: PriceImportPreview }> {
   const validated = await validatePriceCsv(input);
   if (validated.accepted.length === 0) {
     throw new PriceImportError("Ninguna fila es válida; no se importa nada", "NO_VALID_ROWS");
   }
 
-  const { accepted, sourceIdsByCode, materialIdsByCode, region } = validated;
+  const { sourceIdsByCode, materialIdsByCode, region } = validated;
+  // Sin force, los materiales que superan el umbral de inflación quedan fuera.
+  const flaggedCodes = new Set(
+    validated.preview.proposals.filter((p) => p.exceedsInflation).map((p) => p.materialCode),
+  );
+  const accepted = input.forceAll
+    ? validated.accepted
+    : validated.accepted.filter((a) => !flaggedCodes.has(a.dto.materialCode));
+  if (accepted.length === 0) {
+    throw new PriceImportError(
+      "Todos los materiales superan el umbral de inflación; repetí la operación forzando la importación",
+      "NO_VALID_ROWS",
+    );
+  }
 
   // Fuente única del relevamiento si todo el archivo comparte fuente.
   const sourceCodes = [...new Set(accepted.map((a) => a.dto.source))];
@@ -325,8 +359,9 @@ export async function confirmPriceImport(input: {
         originalFilename: input.filename.slice(0, 200),
         status: CollectionStatus.DRAFT,
         totalRows: validated.preview.totalRows,
-        acceptedRows: validated.preview.validRows,
-        rejectedRows: validated.preview.invalidRows,
+        acceptedRows: accepted.length,
+        rejectedRows:
+          validated.preview.invalidRows + (validated.accepted.length - accepted.length),
         createdBy: input.createdBy,
       },
       select: { id: true },

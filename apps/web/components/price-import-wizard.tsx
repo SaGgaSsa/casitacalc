@@ -81,7 +81,7 @@ export function PriceImportWizard() {
     }
   }
 
-  async function confirmar() {
+  async function confirmar(forceAll: boolean) {
     if (!file || !preview) return;
     setConfirming(true);
     setError(null);
@@ -90,7 +90,7 @@ export function PriceImportWizard() {
       const res = await fetch("/api/admin/prices/import/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filename: file.name, content }),
+        body: JSON.stringify({ filename: file.name, content, forceAll }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -154,20 +154,34 @@ export function PriceImportWizard() {
                 {preview.parseErrors.length} líneas con errores de estructura fueron ignoradas.
               </p>
             )}
-            {preview.warnings.length > 0 && (
-              <p className="mt-3 text-xs text-amber-700">
-                {preview.warnings.length} materiales con muestras insuficientes quedan en borrador para revisión.
+            {preview.flaggedRows > 0 && (
+              <p className="mt-3 text-xs text-destructive">
+                {preview.proposals.filter((p) => p.exceedsInflation).length}{" "}
+                {preview.proposals.filter((p) => p.exceedsInflation).length === 1
+                  ? "material supera"
+                  : "materiales superan"}{" "}
+                el umbral de inflación (+2,5% mensual) y queda fuera de la importación salvo que fuerces todo.
               </p>
             )}
-            <div className="mt-4">
-              <Button onClick={confirmar} disabled={preview.validRows === 0 || confirming}>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button onClick={() => confirmar(false)} disabled={preview.importableRows === 0 || confirming}>
                 {confirming ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
-                Confirmar importación ({preview.validRows} observaciones)
+                Confirmar importación ({preview.importableRows} observaciones)
               </Button>
-              <p className="mt-2 text-xs text-muted-foreground">
-                Se crea un relevamiento en borrador; la publicación es manual.
-              </p>
+              {preview.flaggedRows > 0 && (
+                <Button
+                  variant="outline"
+                  className="border-destructive/40 text-destructive hover:bg-destructive/10"
+                  onClick={() => confirmar(true)}
+                  disabled={confirming}
+                >
+                  Forzar todo ({preview.flaggedRows} observaciones más)
+                </Button>
+              )}
             </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Se crea un relevamiento en borrador; la publicación es manual.
+            </p>
           </div>
 
           {/* Propuestas de precio de referencia */}
@@ -211,6 +225,7 @@ function ProposalsTable({ proposals }: { proposals: PriceImportPreviewProposal[]
             <TableHead>Código</TableHead>
             <TableHead>Material</TableHead>
             <TableHead>Muestras</TableHead>
+            <TableHead>Anterior</TableHead>
             <TableHead>Mediana</TableHead>
             <TableHead>Estado</TableHead>
           </TableRow>
@@ -221,12 +236,17 @@ function ProposalsTable({ proposals }: { proposals: PriceImportPreviewProposal[]
               <TableCell className="font-mono text-xs">{p.materialCode}</TableCell>
               <TableCell>{p.materialNombre}</TableCell>
               <TableCell>{p.sampleSize}</TableCell>
+              <TableCell>
+                {p.previousPrice !== null ? (
+                  formatMoney(p.previousPrice)
+                ) : (
+                  <span className="text-muted-foreground">sin historial</span>
+                )}
+              </TableCell>
               <TableCell>{p.medianPrice !== null ? formatMoney(p.medianPrice) : "—"}</TableCell>
               <TableCell>
-                {p.insufficientSample ? (
-                  <Badge variant="outline" className="border-amber-400 text-amber-700">
-                    Muestras insuficientes
-                  </Badge>
+                {p.exceedsInflation ? (
+                  <Badge variant="destructive">Supera inflación</Badge>
                 ) : (
                   <Badge variant="default">OK</Badge>
                 )}
@@ -266,7 +286,18 @@ function RowsTable({ rows }: { rows: PreviewRow[] }) {
               <TableCell className="text-xs text-muted-foreground">{row.line}</TableCell>
               <TableCell className="font-mono text-xs">{row.materialCode ?? "—"}</TableCell>
               <TableCell className="max-w-[280px] truncate" title={row.title}>
-                {row.title || "—"}
+                {row.url ? (
+                  <a
+                    href={row.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-primary hover:underline"
+                  >
+                    {row.title || "—"}
+                  </a>
+                ) : (
+                  row.title || "—"
+                )}
               </TableCell>
               <TableCell>{row.rawPrice !== null ? formatMoney(row.rawPrice) : "—"}</TableCell>
               <TableCell>

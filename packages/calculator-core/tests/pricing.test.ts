@@ -15,7 +15,7 @@ const CTX: PriceRowContext = {
   enabledSources: ["EASY", "MERCADOLIBRE", "MANUAL"],
   materialsByCode: {
     CEMENTO_PORTLAND_50KG: { unidad: "bolsa" },
-    LADRILLO_HUECO_18X18X33: { unidad: "un" },
+    LADRILLO_HUECO_12X18X33: { unidad: "un" },
     ARENA_GRUESA: { unidad: "m3" },
     CAL_HIDRATADA_25KG: { unidad: "bolsa" },
   },
@@ -175,7 +175,7 @@ describe("normalización de packs", () => {
   it("pack de 10 ladrillos → precio por unidad", () => {
     const result = validatePriceCsvRow(
       csvRow(2, {
-        material_code: "LADRILLO_HUECO_18X18X33",
+        material_code: "LADRILLO_HUECO_12X18X33",
         title: "Pack 10 ladrillos",
         raw_price: "12000",
         package_quantity: "10",
@@ -215,7 +215,7 @@ describe("normalización de packs", () => {
   it("UNIT exige cantidad entera", () => {
     const result = validatePriceCsvRow(
       csvRow(2, {
-        material_code: "LADRILLO_HUECO_18X18X33",
+        material_code: "LADRILLO_HUECO_12X18X33",
         package_quantity: "10.5",
         package_unit: "UNIT",
       }),
@@ -326,5 +326,91 @@ describe("mediana y propuestas", () => {
     const { proposals, warnings } = computeReferenceProposals(obs);
     expect(proposals[0]?.insufficientSample).toBe(false);
     expect(warnings).toHaveLength(0);
+  });
+});
+
+describe("umbral de inflación", () => {
+  it("marca EXCEEDS_INFLATION cuando la mediana supera anterior × (1 + tasa)", () => {
+    const obs = [{ materialCode: "CEMENTO_PORTLAND_50KG", normalizedUnitPrice: 13000 }];
+    const { proposals, warnings } = computeReferenceProposals(obs, {
+      previousPrices: new Map([["CEMENTO_PORTLAND_50KG", 12500]]),
+      monthlyRate: 0.025,
+    });
+    // Umbral: 12500 × 1,025 = 12812.5 → 13000 supera.
+    expect(proposals[0]?.exceedsInflation).toBe(true);
+    expect(proposals[0]?.previousPrice).toBe(12500);
+    expect(warnings).toContain("EXCEEDS_INFLATION:CEMENTO_PORTLAND_50KG");
+  });
+
+  it("no marca cuando la mediana queda dentro del umbral", () => {
+    const obs = [12400, 12700, 12800, 12800, 12900].map((normalizedUnitPrice) => ({
+      materialCode: "CEMENTO_PORTLAND_50KG",
+      normalizedUnitPrice,
+    }));
+    const { proposals, warnings } = computeReferenceProposals(obs, {
+      previousPrices: new Map([["CEMENTO_PORTLAND_50KG", 12500]]),
+      monthlyRate: 0.025,
+    });
+    expect(proposals[0]?.exceedsInflation).toBe(false);
+    expect(proposals[0]?.previousPrice).toBe(12500);
+    expect(warnings).toHaveLength(0);
+  });
+
+  it("mediana exactamente igual al umbral no marca (comparación estricta)", () => {
+    const obs = [{ materialCode: "CAL_HIDRATADA_25KG", normalizedUnitPrice: 10250 }];
+    const { proposals } = computeReferenceProposals(obs, {
+      previousPrices: new Map([["CAL_HIDRATADA_25KG", 10000]]),
+      monthlyRate: 0.025,
+    });
+    expect(proposals[0]?.exceedsInflation).toBe(false);
+  });
+
+  it("sin precio anterior publicado no marca", () => {
+    const obs = Array.from({ length: 5 }, (_, i) => ({
+      materialCode: "LADRILLO_HUECO_12X18X33",
+      normalizedUnitPrice: 2900 + i * 50,
+    }));
+    const { proposals, warnings } = computeReferenceProposals(obs, {
+      previousPrices: new Map(),
+      monthlyRate: 0.025,
+    });
+    expect(proposals[0]?.exceedsInflation).toBe(false);
+    expect(proposals[0]?.previousPrice).toBeNull();
+    expect(warnings).toHaveLength(0);
+  });
+
+  it("sin opciones usa la tasa mensual por defecto de shared", () => {
+    const obs = [{ materialCode: "CEMENTO_PORTLAND_50KG", normalizedUnitPrice: 10300 }];
+    const { proposals, warnings } = computeReferenceProposals(obs, {
+      previousPrices: new Map([["CEMENTO_PORTLAND_50KG", 10000]]),
+    });
+    // Umbral con tasa default: 10000 × 1,025 = 10250 → 10300 supera.
+    expect(proposals[0]?.exceedsInflation).toBe(true);
+    expect(warnings).toContain("EXCEEDS_INFLATION:CEMENTO_PORTLAND_50KG");
+  });
+
+  it("cada material se compara contra su propio precio anterior", () => {
+    const obs = [
+      ...Array.from({ length: 5 }, (_, i) => ({
+        materialCode: "CEMENTO_PORTLAND_50KG",
+        normalizedUnitPrice: 12800 + i * 100, // mediana 13000
+      })),
+      ...Array.from({ length: 5 }, (_, i) => ({
+        materialCode: "ARENA_GRUESA",
+        normalizedUnitPrice: 28200 + i * 100, // mediana 28400
+      })),
+    ];
+    const { proposals, warnings } = computeReferenceProposals(obs, {
+      previousPrices: new Map([
+        ["CEMENTO_PORTLAND_50KG", 12500],
+        ["ARENA_GRUESA", 28000],
+      ]),
+      monthlyRate: 0.025,
+    });
+    const porCodigo = Object.fromEntries(proposals.map((p) => [p.materialCode, p]));
+    expect(porCodigo.CEMENTO_PORTLAND_50KG?.exceedsInflation).toBe(true);
+    // Umbral arena: 28000 × 1,025 = 28700 → 28400 queda dentro.
+    expect(porCodigo.ARENA_GRUESA?.exceedsInflation).toBe(false);
+    expect(warnings).toEqual(["EXCEEDS_INFLATION:CEMENTO_PORTLAND_50KG"]);
   });
 });

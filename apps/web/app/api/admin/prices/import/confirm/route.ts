@@ -19,15 +19,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
   }
 
-  const { filename, content } = (body ?? {}) as {
+  const { filename, content, forceAll } = (body ?? {}) as {
     filename?: unknown;
     content?: unknown;
+    forceAll?: unknown;
   };
   if (typeof content !== "string" || typeof filename !== "string") {
     return NextResponse.json(
       { error: "Se esperaban los campos filename y content" },
       { status: 422 },
     );
+  }
+  if (forceAll !== undefined && typeof forceAll !== "boolean") {
+    return NextResponse.json({ error: "forceAll debe ser booleano" }, { status: 422 });
   }
   if (!filename.toLowerCase().endsWith(".csv")) {
     return NextResponse.json({ error: "Solo se aceptan archivos .csv" }, { status: 422 });
@@ -42,6 +46,7 @@ export async function POST(request: Request) {
       filename,
       content,
       createdBy: admin.user?.email ?? "desconocido",
+      forceAll: forceAll === true,
     });
     return NextResponse.json({ id: collectionId }, { status: 201 });
   } catch (e) {

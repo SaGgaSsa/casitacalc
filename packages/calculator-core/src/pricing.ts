@@ -1,7 +1,9 @@
 import {
   CurrencyEnum,
+  EXCEEDS_INFLATION,
   INSUFFICIENT_SAMPLE_SIZE,
   MIN_REFERENCE_SAMPLES,
+  MONTHLY_INFLATION_RATE,
   PackageUnit,
   PackageUnitEnum,
   PACKAGE_UNIT_TO_MATERIAL_UNIT,
@@ -434,6 +436,10 @@ export interface ReferencePriceProposal {
   /** Mediana redondeada a 2 decimales; null si no hay muestras aceptadas. */
   medianPrice: number | null;
   insufficientSample: boolean;
+  /** Último precio PUBLISHED del material; null si nunca tuvo. */
+  previousPrice: number | null;
+  /** Mediana estrictamente superior a anterior × (1 + inflación mensual). */
+  exceedsInflation: boolean;
 }
 
 export interface ReferenceProposalResult {
@@ -441,13 +447,23 @@ export interface ReferenceProposalResult {
   warnings: string[];
 }
 
+export interface ReferenceProposalOptions {
+  /** Último precio publicado por código de material; ausente = sin historial. */
+  previousPrices?: Map<string, number>;
+  /** Tasa mensual; default MONTHLY_INFLATION_RATE de shared. */
+  monthlyRate?: number;
+}
+
 /**
  * Agrupa observaciones aceptadas por material y propone la mediana.
  * Nunca promedio simple. Con menos de MIN_REFERENCE_SAMPLES muestras marca
  * INSUFFICIENT_SAMPLE_SIZE pero igual devuelve la propuesta para revisión.
+ * Con precio anterior publicado marca EXCEEDS_INFLATION si la mediana supera
+ * anterior × (1 + tasa mensual); sin historial no marca nunca.
  */
 export function computeReferenceProposals(
   observations: { materialCode: string; normalizedUnitPrice: number }[],
+  options: ReferenceProposalOptions = {},
 ): ReferenceProposalResult {
   const porMaterial = new Map<string, number[]>();
   for (const obs of observations) {
@@ -456,6 +472,7 @@ export function computeReferenceProposals(
     porMaterial.set(obs.materialCode, list);
   }
 
+  const rate = options.monthlyRate ?? MONTHLY_INFLATION_RATE;
   const proposals: ReferencePriceProposal[] = [];
   const warnings: string[] = [];
   for (const [materialCode, prices] of [...porMaterial.entries()].sort()) {
@@ -463,7 +480,21 @@ export function computeReferenceProposals(
     const medianPrice = median(prices);
     const insufficientSample = sampleSize < MIN_REFERENCE_SAMPLES;
     if (insufficientSample) warnings.push(`${INSUFFICIENT_SAMPLE_SIZE}:${materialCode}`);
-    proposals.push({ materialCode, sampleSize, medianPrice, insufficientSample });
+
+    const previousPrice = options.previousPrices?.get(materialCode) ?? null;
+    const threshold =
+      previousPrice !== null ? round2(previousPrice * (1 + rate)) : null;
+    const exceedsInflation = medianPrice !== null && threshold !== null && medianPrice > threshold;
+    if (exceedsInflation) warnings.push(`${EXCEEDS_INFLATION}:${materialCode}`);
+
+    proposals.push({
+      materialCode,
+      sampleSize,
+      medianPrice,
+      insufficientSample,
+      previousPrice,
+      exceedsInflation,
+    });
   }
   return { proposals, warnings };
 }

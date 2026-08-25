@@ -54,10 +54,11 @@ function fila(overrides: Partial<Record<string, string>> = {}, n = "1"): string 
 async function subirCsv(
   filename: string,
   lineas: string[],
+  forceAll = false,
 ): Promise<Response> {
   const content = [HEADER, ...lineas].join("\n");
   return confirmPOST(
-    reqJson("/api/admin/prices/import/confirm", { filename, content }),
+    reqJson("/api/admin/prices/import/confirm", { filename, content, forceAll }),
   );
 }
 
@@ -92,7 +93,7 @@ beforeEach(async () => {
   const fecha = new Date("2026-01-01T00:00:00.000Z");
   for (const m of [
     { codigo: "CEMENTO_PORTLAND_50KG", nombre: "Cemento Portland 50 kg", categoria: "Aglomerantes", unidad: "bolsa", precioDefault: 9500 },
-    { codigo: "LADRILLO_HUECO_18X18X33", nombre: "Ladrillo hueco 18x18x33", categoria: "Mampostería", unidad: "un", precioDefault: 650 },
+    { codigo: "LADRILLO_HUECO_12X18X33", nombre: "Ladrillo hueco 12x18x33", categoria: "Mampostería", unidad: "un", precioDefault: 650 },
     { codigo: "ARENA_GRUESA", nombre: "Arena gruesa", categoria: "Agregados", unidad: "m3", precioDefault: 28000 },
   ]) {
     await prisma.material.upsert({
@@ -171,7 +172,7 @@ describe("preview e importación", () => {
       fila({ raw_price: "12500" }, "12"),
       fila({ raw_price: "13000", external_id: "", url: "https://tienda.com/p/9", title: "Cemento corralón" }, "13"),
       fila({ raw_price: "99999" }, "14"),
-      fila({ material_code: "LADRILLO_HUECO_18X18X33", title: "Pack 10 ladrillos huecos", raw_price: "12000", package_quantity: "10", package_unit: "UNIT" }, "15"),
+      fila({ material_code: "LADRILLO_HUECO_12X18X33", title: "Pack 10 ladrillos huecos", raw_price: "12000", package_quantity: "10", package_unit: "UNIT" }, "15"),
     ];
     const res = await subirCsv("precios-2026-08.csv", lineas);
     expect(res.status).toBe(201);
@@ -200,7 +201,7 @@ describe("preview e importación", () => {
     expect(refCemento?.insufficientSample).toBe(false);
     expect(refCemento?.status).toBe("DRAFT");
 
-    const ladrilloId = await materialId("LADRILLO_HUECO_18X18X33");
+    const ladrilloId = await materialId("LADRILLO_HUECO_12X18X33");
     const refLadrillo = refs.find((r) => r.materialId === ladrilloId);
     expect(refLadrillo?.sampleSize).toBe(1);
     expect(refLadrillo?.insufficientSample).toBe(true); // menos de 5 muestras
@@ -239,6 +240,121 @@ describe("preview e importación", () => {
     expect(res.status).toBe(422);
     const data = await res.json();
     expect(data.code).toBe("MISSING_HEADER");
+  });
+});
+
+describe("umbral de inflación en el importador", () => {
+  // Publica cemento con mediana 12500 (umbral: 12500 × 1,025 = 12812.5).
+  async function publicarBaseline() {
+    const { id } = await importarColeccionConCemento();
+    const pub = await publishPOST(new Request("http://localhost/pub"), await params({ id }));
+    expect(pub.status).toBe(200);
+  }
+
+  /** CSV nuevo: 5 cementos (mediana 13000, supera umbral) + 1 ladrillo (sin historial). */
+  function csvContraBaseline(): string[] {
+    return [
+      ...[12800, 12900, 13000, 13100, 13200].map((p, i) =>
+        fila({ raw_price: String(p) }, `nuevo-${i}`),
+      ),
+      fila(
+        {
+          material_code: "LADRILLO_HUECO_12X18X33",
+          title: "Ladrillo hueco unidad",
+          raw_price: "3000",
+          package_quantity: "1",
+          package_unit: "UNIT",
+        },
+        "nuevo-lad",
+      ),
+    ];
+  }
+
+  it("el preview marca materiales que superan el umbral con su precio anterior", async () => {
+    await publicarBaseline();
+    const content = [HEADER, ...csvContraBaseline()].join("\n");
+    const res = await previewPOST(reqJson("/preview", { filename: "suba.csv", content }));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+
+    const porCodigo = Object.fromEntries(
+      data.proposals.map((p: { materialCode: string }) => [p.materialCode, p]),
+    );
+    expect(porCodigo.CEMENTO_PORTLAND_50KG.exceedsInflation).toBe(true);
+    expect(porCodigo.CEMENTO_PORTLAND_50KG.previousPrice).toBe(12500);
+    expect(porCodigo.LADRILLO_HUECO_12X18X33.exceedsInflation).toBe(false);
+    expect(porCodigo.LADRILLO_HUECO_12X18X33.previousPrice).toBeNull();
+    expect(data.warnings).toContain("EXCEEDS_INFLATION:CEMENTO_PORTLAND_50KG");
+
+    // Conteo para los botones: ladrillo importable, cemento requiere force.
+    expect(data.validRows).toBe(6);
+    expect(data.importableRows).toBe(1);
+    expect(data.flaggedRows).toBe(5);
+  });
+
+  it("las filas del preview exponen la url de la publicación", async () => {
+    await publicarBaseline();
+    const content = [HEADER, ...csvContraBaseline()].join("\n");
+    const res = await previewPOST(reqJson("/preview", { filename: "suba.csv", content }));
+    const data = await res.json();
+    const filaCemento = data.rows.find(
+      (r: { externalRef?: string; title: string }) => r.title === "Cemento prueba nuevo-0",
+    );
+    expect(filaCemento?.url).toBe("https://articulo.mercadolibre.com.ar/MLAnuevo-0");
+  });
+
+  it("el confirm sin forceAll deja fuera los materiales marcados", async () => {
+    await publicarBaseline();
+    const content = [HEADER, ...csvContraBaseline()].join("\n");
+    const res = await confirmPOST(
+      reqJson("/confirm", { filename: "suba.csv", content, forceAll: false }),
+    );
+    expect(res.status).toBe(201);
+    const { id } = await res.json();
+
+    const obs = await prisma.priceObservation.findMany({ where: { collectionId: id } });
+    expect(obs).toHaveLength(1);
+    expect(obs[0]?.title).toBe("Ladrillo hueco unidad");
+
+    const refs = await prisma.materialReferencePrice.findMany({ where: { collectionId: id } });
+    expect(refs).toHaveLength(1);
+    const ladrilloId = await materialId("LADRILLO_HUECO_12X18X33");
+    expect(refs[0]?.materialId).toBe(ladrilloId);
+
+    const collection = await prisma.priceCollection.findUniqueOrThrow({ where: { id } });
+    expect(collection.acceptedRows).toBe(1);
+  });
+
+  it("el confirm con forceAll importa también los marcados", async () => {
+    await publicarBaseline();
+    const content = [HEADER, ...csvContraBaseline()].join("\n");
+    const res = await confirmPOST(
+      reqJson("/confirm", { filename: "suba.csv", content, forceAll: true }),
+    );
+    expect(res.status).toBe(201);
+    const { id } = await res.json();
+
+    const obs = await prisma.priceObservation.findMany({ where: { collectionId: id } });
+    expect(obs).toHaveLength(6);
+
+    const refs = await prisma.materialReferencePrice.findMany({ where: { collectionId: id } });
+    expect(refs).toHaveLength(2);
+  });
+
+  it("sin forceAll y con todo marcado no importa nada (NO_VALID_ROWS)", async () => {
+    await publicarBaseline();
+    const lineas = [12800, 12900, 13000, 13100, 13200].map((p, i) =>
+      fila({ raw_price: String(p) }, `solo-${i}`),
+    );
+    const content = [HEADER, ...lineas].join("\n");
+    const obsAntes = await prisma.priceObservation.count();
+    const res = await confirmPOST(
+      reqJson("/confirm", { filename: "suba.csv", content, forceAll: false }),
+    );
+    expect(res.status).toBe(422);
+    const data = await res.json();
+    expect(data.code).toBe("NO_VALID_ROWS");
+    expect(await prisma.priceObservation.count()).toBe(obsAntes);
   });
 });
 
@@ -339,6 +455,7 @@ describe("publicación y consumo del precio", () => {
     await importarColeccionConCemento(
       "2026-08-21",
       [12000, 12600, 13200, 13800, 14400], // mediana 13200
+      true, // supera el umbral de inflación vs 11000; se fuerza para probar el historial
     );
     const coleccion2 = await prisma.priceCollection.findFirstOrThrow({
       where: { collectedAt: { gt: coleccion1.collectedAt } },
@@ -414,11 +531,12 @@ async function materialId(codigo: string): Promise<string> {
 async function importarColeccionConCemento(
   fecha = "2026-08-22",
   precios: number[] = [12000, 12500, 12500, 13000, 99999], // mediana 12500
+  forceAll = false,
 ): Promise<{ id: string }> {
   const lineas = precios.map((p, i) =>
     fila({ collected_at: fecha, raw_price: String(p) }, `c-${fecha}-${i}`),
   );
-  const res = await subirCsv(`precios-${fecha}.csv`, lineas);
+  const res = await subirCsv(`precios-${fecha}.csv`, lineas, forceAll);
   if (res.status !== 201) throw new Error(`import falló: ${res.status}`);
   return res.json();
 }

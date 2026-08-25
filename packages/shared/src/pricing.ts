@@ -183,6 +183,15 @@ export const REJECTION_REASON_LABELS: Record<RejectionReason, string> = {
 /** Warning a nivel precio de referencia cuando faltan muestras. */
 export const INSUFFICIENT_SAMPLE_SIZE = "INSUFFICIENT_SAMPLE_SIZE" as const;
 
+/** Warning cuando la mediana propuesta supera el umbral de inflación. */
+export const EXCEEDS_INFLATION = "EXCEEDS_INFLATION" as const;
+
+/**
+ * Inflación mensual estimada para validar relevamientos. Fija hasta
+ * integrar el cálculo contra una API económica.
+ */
+export const MONTHLY_INFLATION_RATE = 0.025;
+
 /** Mínimo de observaciones aceptadas para auto-validar un precio de referencia. */
 export const MIN_REFERENCE_SAMPLES = 5;
 
