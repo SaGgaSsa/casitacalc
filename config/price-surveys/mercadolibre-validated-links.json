@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "_comment": "Links de Mercado Libre validados manualmente por el usuario. El skill mercadolibre-price-survey reutiliza estas URLs en cada corrida (una sola verificación por material) en vez de buscar de nuevo. Solo agregar entradas que el usuario aprobó explícitamente. Si un link deja de funcionar, NO se busca reemplazo automáticamente: se reporta y decide el usuario.",
+  "links": {
+    "CEMENTO_PORTLAND_25KG": {
+      "url": "https://www.mercadolibre.com.ar/bolsa-cemento-avellaneda-x-25-kg/p/MLA53674271",
+      "external_id": "MLA53674271",
+      "title": "Bolsa Cemento Avellaneda X 25 Kg",
+      "package_quantity": 1,
+      "package_unit": "BAG_25KG",
+      "validatedAt": "2026-08-24",
+      "note": "Validado por usuario en corrida 3 (método v2). $22.000/unidad al validar."
+    },
+    "CAL_HIDRATADA_25KG": {
+      "url": "https://www.mercadolibre.com.ar/bolsa-cal-hidrat-x-25-kg/p/MLA35559872",
+      "external_id": "MLA35559872",
+      "title": "Bolsa Cal Hidrat X 25 Kg",
+      "package_quantity": 1,
+      "package_unit": "BAG_25KG",
+      "validatedAt": "2026-08-24",
+      "note": "Validado por usuario en corrida 3 (método v2) sabiendo que es outlier ($3.500 vs cluster $8.800-$9.500)."
+    },
+    "LADRILLO_HUECO_12X18X33": {
+      "url": "https://www.mercadolibre.com.ar/ladrillo-huecos-por-unidad-12x18x33-9/p/MLA2091220516",
+      "external_id": "MLA2091220516",
+      "title": "Ladrillo Huecos Por Unidad 12x18x33 9",
+      "package_quantity": 1,
+      "package_unit": "UNIT",
+      "validatedAt": "2026-08-24",
+      "note": "Validado por usuario en corrida 3 (método v2). $3.000/unidad visible (JSON-LD $2.850). El código se renombró desde LADRILLO_HUECO_18X18X33: la medida real que se usa es 12x18x33."
+    }
+  }
+}

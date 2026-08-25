@@ -1,5 +1,6 @@
 {
-  "version": 1,
+  "version": 2,
+  "_comment": "Método v2 del skill mercadolibre-price-survey: UNA query genérica por material (nombre de producto, sin pesos/medidas/cantidades), primer resultado orgánico, una sola verificación. La validación fina es humana; los links aprobados se persisten en mercadolibre-validated-links.json y en corridas siguientes se reutilizan sin buscar.",
   "source": "MERCADOLIBRE",
   "region": "GBA",
   "currency": "ARS",
@@ -7,105 +8,20 @@
     {
       "materialCode": "CEMENTO_PORTLAND_25KG",
       "nombre": "Cemento Portland 25 kg",
-      "expectedPackageUnit": "BAG_25KG",
-      "queries": [
-        "cemento portland",
-        "cemento loma negra",
-        "cemento holcim",
-        "cemento avellaneda"
-      ],
-      "required": {
-        "productType": "cemento portland gris de uso general (cualquier marca comparable)",
-        "weightKg": 25
-      },
-      "note": "Relevo por nombre de producto, no por peso: el mercado argentino vende bolsas de 25 kg y en ML no hay publicaciones de 50 kg (verificado 2026-08-24). El material CEMENTO_PORTLAND_50KG queda en el catálogo pero fuera del relevamiento.",
-      "excludeTerms": [
-        "50 kg",
-        "50kg",
-        "blanco",
-        "refractario",
-        "adhesivo",
-        "pegamento",
-        "cal ",
-        "yeso",
-        "granel",
-        "x 1 kg",
-        "x 2 kg",
-        "x 5 kg",
-        "x 10 kg",
-        "x 20 kg",
-        "juntamax",
-        "revokito"
-      ],
-      "minSamples": 5,
-      "targetSamples": 8,
-      "maxSamples": 10,
-      "maxSamplesPerSeller": 2
+      "query": "cemento portland",
+      "expectedPackageUnit": "BAG_25KG"
     },
     {
       "materialCode": "CAL_HIDRATADA_25KG",
       "nombre": "Cal hidratada 25 kg",
-      "expectedPackageUnit": "BAG_25KG",
-      "queries": [
-        "cal hidratada",
-        "cal comun",
-        "cal hidrat extra"
-      ],
-      "required": {
-        "productType": "cal hidratada (NO hidráulica, NO viva, NO agrícola)",
-        "weightKg": 25
-      },
-      "excludeTerms": [
-        "hidraulica",
-        "viva",
-        "agricola",
-        "50 kg",
-        "50kg",
-        "10 kg",
-        "10kg",
-        "cemento",
-        "yeso"
-      ],
-      "minSamples": 5,
-      "targetSamples": 8,
-      "maxSamples": 10,
-      "maxSamplesPerSeller": 2
+      "query": "cal hidratada",
+      "expectedPackageUnit": "BAG_25KG"
     },
     {
-      "materialCode": "LADRILLO_HUECO_18X18X33",
-      "nombre": "Ladrillo hueco 18x18x33",
-      "expectedPackageUnit": "UNIT",
-      "queries": [
-        "ladrillo hueco 18x18x33",
-        "ladrillo ceramico hueco 18x18x33",
-        "ladrillo hueco 18 33"
-      ],
-      "required": {
-        "productType": "ladrillo hueco cerámico de arcilla",
-        "dimensionsCm": {
-          "length": 33,
-          "height": 18,
-          "width": 18
-        }
-      },
-      "dimensionOrderNote": "El orden de las dimensiones en el título varía (18x18x33 / 18x33x18 / 33x18x18): validar el conjunto {18,18,33} cm sin asumir posiciones.",
-      "excludeTerms": [
-        "8x18x33",
-        "12x18x33",
-        "12x19x33",
-        "18x18x40",
-        "comun",
-        "visto",
-        "refractario",
-        "hormigon",
-        "bloque",
-        "tarugo",
-        "pallet"
-      ],
-      "minSamples": 5,
-      "targetSamples": 8,
-      "maxSamples": 10,
-      "maxSamplesPerSeller": 2
+      "materialCode": "LADRILLO_HUECO_12X18X33",
+      "nombre": "Ladrillo hueco 12x18x33",
+      "query": "ladrillo hueco",
+      "expectedPackageUnit": "UNIT"
     }
   ]
 }

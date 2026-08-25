@@ -1,213 +1,110 @@
 ---
 name: mercadolibre-price-survey
-description: Use when collecting current Argentine Mercado Libre prices for predefined CasitaCalc construction materials that must be exported as normalized price observations.
+description: Use when collecting current Argentine Mercado Libre prices for predefined CasitaCalc construction materials - captures ONE observation per material from its persisted user-validated link or the first search result, for human validation before import.
 ---
 
-# Mercado Libre Price Survey (CasitaCalc)
+# Mercado Libre Price Survey (CasitaCalc) — método v2
 
 ## Overview
 
-Producir evidencia de precios normalizada desde publicaciones reales de Mercado
-Libre Argentina, en el CSV que consume el importador de CasitaCalc. El formato
-base lo define `docs/price-import-format.md`, pero este skill fija DOS
-excepciones que siempre ganan: **solo filas aceptadas y verificadas**, y
-**encabezado de 13 columnas** (sin `accepted` ni `rejection_reason`).
+**Una observación por material: primer resultado de UNA búsqueda genérica (o el
+link validado ya persistido), una sola verificación, datos crudos tal cual se
+ven, y el link de ML en la salida para validación humana.**
 
-Este skill NO toca PostgreSQL, NO llama APIs internas de CasitaCalc, NO usa la
-API/MCP de Mercado Libre, NO importa ni publica precios, NO calcula medianas ni
-`normalizedUnitPrice`. Solo genera archivos.
+El agente NO valida presentaciones ni rechaza por paquete/dimensiones: registra
+lo observado y marca la duda. La corrección fina la hace el usuario (caso
+histórico que motivó este método: un precio de pallet se cargó como ladrillo
+unitario porque el agente "verificaba" demasiado y aun así falló).
 
-**Principio rector: no observado = desconocido.** Nunca inferir precio,
-cantidad, vendedor, peso, dimensiones, URL ni externalId. Ante duda: sin fila;
-va a `report.md`.
+Principios:
+
+- **Primer resultado = fuente.** Sin segunda búsqueda, sin candidatos
+  alternativos, sin evaluar el resto del listado.
+- **Una sola apertura de página por material** por corrida.
+- **Lo observado manda.** Si el precio es de pallet, `raw_price` queda completo;
+  NUNCA se divide: eso lo calcula el importador (`raw_price / package_quantity`).
+- **Dato no observable ≠ dato inventado.** Cantidad o presentación ambigua →
+  sin fila en CSV; pendiente en report.md con su link.
+- **El link SIEMPRE viaja en la salida** (columna `url` y reporte).
+
+Este skill NO toca PostgreSQL, NO llama APIs internas ni la API/MCP de ML, NO
+importa precios, NO calcula `normalizedUnitPrice`. Solo genera archivos.
 
 ## Entrada y salida
 
-- **QUÉ relevar**: dos archivos, en este orden:
-  1. `packages/shared/src/materials.json` — catálogo maestro: LA lista de
-     materiales existentes (codigo, nombre, categoria, unidad nominal).
-     Nunca releves materiales fuera de ese archivo ni inventes códigos.
-  2. `config/price-surveys/mercadolibre-price-specs.json` — por material a
-     relevar: queries, excludeTerms, presentación esperada,
-     min/target/maxSamples, maxSamplesPerSeller. Solo se releva un material
-     si tiene entrada acá; los códigos siempre salen del catálogo maestro.
-- **Salida**: `data/price-surveys/mercadolibre/YYYY-MM-DD/prices.csv` +
-  `report.md`, donde YYYY-MM-DD es la fecha real de la corrida.
+- `packages/shared/src/materials.json` — catálogo maestro: códigos válidos.
+- `config/price-surveys/mercadolibre-price-specs.json` — query genérica
+  (nombre del producto, SIN pesos/medidas/cantidades) y presentación esperada
+  por material.
+- `config/price-surveys/mercadolibre-validated-links.json` — URLs ya
+  **validadas por el usuario**: si el material tiene entrada, se usa ese link
+  directo y NO se busca.
+- Salida: `data/price-surveys/mercadolibre/YYYY-MM-DD/prices.csv` +
+  `report.md` (fecha real de la corrida). Si la carpeta del día ya existe de
+  otra metodología, renombrá los archivos viejos con sufijo `.metodo-v1` antes
+  de escribir.
 
 ## Método
 
-1. Leé la PriceSpec del material. Ejecutá sus queries en mercadolibre.com.ar
-   **con un navegador real** (ej. Playwright MCP con Chrome local): el fetch
-   directo y los proxies de renderizado reciben el muro anti-bot
-   (`gz/account-verification`), y la API oficial sigue prohibida. Con sesión ya
-   validada, extraé los datos del DOM del listado (título, precio, vendedor de
-   tarjeta) o del JSON-LD embebido en cada página.
-2. **Queries por nombre de producto, NO por peso.** El buscador de ML ignora
-   sistemáticamente los términos de peso ("cemento portland 50 kg" devuelve
-   bolsas de 25 kg, de 1 kg y cemento blanco) y las presentaciones cambian con
-   el mercado (el cemento argentino pasó de 50 kg a 25 kg). La presentación se
-   valida sobre título/tarjeta/ficha, nunca en la query. Si el mercado ya no
-   ofrece la presentación que nombra el código (ej. `_50KG`), cortá ese
-   material con `INSUFFICIENT_SAMPLE_SIZE`, dejalo asentado en `report.md` y
-   sugerí revisión de catálogo (alta de un código alternativo): nunca reemplaces
-   la presentación por tu cuenta ni reutilices el código con otra presentación.
-3. **Dos niveles de evidencia:** un resultado de buscador (snippet) es solo un
-   **candidato** que descubre URLs. Para aceptar un precio necesitás haber
-   **verificado directamente la página de la publicación** (título,
-   presentación/dimensiones y precio observados en la propia página).
-   Candidato no verificado (ej.: login-wall) → pendiente en `report.md`,
-   nunca fila en el CSV. Excepción: modo tarjeta (ver Evidencia).
-4. Aceptá hasta `targetSamples`; cortá en `maxSamples`. No reutilices la misma
-   publicación. Cap determinista: **no aceptes más de `maxSamplesPerSeller`
-   publicaciones del mismo vendedor** (campo del spec; default 2 si falta).
-   Los excedentes por cap van al `report.md`. Tiendas oficiales no quedan
-   excluidas por serlo, pero sí respetan el cap.
-5. Duplicado = mismo MLA ID o misma URL. Canonicalizá la URL (sin parámetros de
-   tracking tipo `matt_tool`). `external_id` = `MLA<número>` sin guiones; `""`
-   si no puede determinarse — incluidas las URLs `/p/MLA…` y `/up/MLAU…`, que
-   identifican productos de catálogo, no publicaciones individuales.
+1. **Resolver el link**, en este orden estricto:
+   a. Link en `mercadolibre-validated-links.json` → usalo directo (paso 3).
+   b. Si no hay: UNA búsqueda en ML con la query del spec usando navegador real
+      (Playwright + Chrome local; fetch directo recibe el muro anti-bot). Tomá
+      **EL PRIMER resultado orgánico** (no patrocinado). Fin de la búsqueda.
+2. **Verificación única**: abrí ese link UNA vez. Extraé de la página: título,
+   precio vigente visible (no cuotas, no tachados), moneda, vendedor, marca, y
+   toda señal declarada de paquete/presentación ("pallet x90", "pack x10",
+   "bolsa 25 kg", dimensiones en título/ficha).
+3. **Registrar tal cual**:
+   - `raw_price` = precio completo observado (si es de pallet, así queda).
+   - `package_quantity`/`package_unit` SOLO si son inequívocos en la página
+     (pallet x90 → 90/UNIT; bolsa 25 kg → 1/BAG_25KG).
+   - Cantidad/presentación ambigua → **sin fila en CSV**; anotá título, precio,
+     link y estado PENDIENTE DE VALIDACIÓN HUMANA en report.md. Solo generás la
+     fila si el usuario te indica el dato (ej. "ese pallet trae 90").
+4. **report.md**: una sección por material — query usada o link reutilizado,
+   título, precio, presentación observada, LINK COMPLETO de ML y estado
+   (fila emitida / pendiente de validación). El usuario valida al final.
 
-## Reglas de aceptación
+## Ciclo de reutilización de links
 
-- Solo ARS, condición nueva, **precio normal vigente visible**. Nunca como
-  `raw_price`: cuotas, precios tachados, descuentos bancarios o por medio de
-  pago, cupones, costo de envío.
-- Packs solo si la cantidad es inequívoca ("Pack x10" → `package_quantity=10`).
-  Pallet/pack sin cantidad declarada → rechazado con motivo
-  `UNKNOWN_PACKAGE_QUANTITY` en el `report.md` (nunca estimar).
-- No descartes por precio raro: una publicación válida con precio extraño sigue
-  siendo evidencia; los outliers los detecta otra capa. Pero si una fila
-  "unitaria" queda muy fuera del cluster (ej. precio típico de pallet en un
-  título sin pack), el warning en `report.md` es obligatorio.
-- Cuidado con los filtros por substring: "5 kg" matchea dentro de "25 kg".
-  Usá patrones con borde (ej. "x 5 kg") o validación positiva del peso. Para
-  ladrillos/bloques validá el **conjunto** de dimensiones sin asumir orden:
-  aceptá solo si alguna terna ordenada es exactamente {18,18,33} y rechazá
-  ternas vecinas ({8,18,33}, {12,18,33}, {18,18,40}).
-
-## Evidencia (anti-alucinación)
-
-Una fila solo se escribe con datos realmente observados **en la página de la
-publicación**: title, url, raw_price e info de paquete. Si a un candidato le
-falta verificación completa (no pudiste abrir su URL real, no se ve el precio,
-la presentación es ambigua), **no generes fila**: anotalo en `report.md` como
-pendiente o rechazado, según corresponda. Jamás derives ni completes un campo
-a partir de otros datos.
-
-### Modo tarjeta (solo a pedido explícito del usuario)
-
-Para acelerar la corrida, el usuario puede pedir aceptar filas desde los datos
-visibles en la tarjeta del listado (DOM, no snippet de buscador externo). En ese
-modo, solo pasan candidatos cuyo título declare la presentación sin ambigüedad
-(peso exacto o conjunto completo de dimensiones) y con precio vigente visible;
-sin esa señal → `NOT_ENOUGH_INFORMATION`. Limitaciones que debés declarar en
-`report.md`: la ficha real puede contradecir al título (caso real: una cal
-"Hidrat Extra" cuya ficha dice "Modelo: Hidráulica" — solo detectable abriendo
-la página); en tarjetas de catálogo (`/p/`, `/up/`) el vendedor mostrado es la
-marca/tienda oficial y no el vendedor real, por lo que el cap se aplica sobre
-ese valor observable; y no hay forma de ver packs ambiguos ni condición.
-Indicá siempre qué nivel de evidencia usó cada sección del reporte.
-
-## Motivos de rechazo (vocabulario cerrado, SOLO report.md)
-
-`WRONG_PRODUCT` `WRONG_PACKAGE_SIZE` `WRONG_DIMENSIONS`
-`UNKNOWN_PACKAGE_QUANTITY` `UNKNOWN_UNIT` `USED_PRODUCT` `INVALID_PRICE`
-`DUPLICATE` `NOT_ENOUGH_INFORMATION`
-
-Estos códigos son del relevamiento y se usan **exclusivamente dentro de
-`report.md`**. El catálogo del importador (`INCOMPATIBLE_UNIT`,
-`DUPLICATE_ROW`, etc.) es otro: nunca mezclarlos ni escribir motivos propios
-en el CSV.
-
-Excluir publicaciones por `maxSamplesPerSeller` NO es `DUPLICATE` (duplicado =
-mismo MLA ID o misma URL, nada más): se describe en texto libre en el
-`report.md` ("excluido por cap de vendedor").
+1. Corrida inicial: descubrís links por búsqueda; el usuario valida datos y
+   links.
+2. Persistí en `mercadolibre-validated-links.json` solo lo aprobado:
+   `url`, `external_id`, `package_quantity` confirmada si aplica, fecha,
+   nota libre. Un material sin entrada se busca de nuevo en la próxima corrida.
+3. Corridas siguientes: abrí el link persistido y observá el precio vigente.
+   Si el link murió (404 / publicación finalizada): **NO busques reemplazo por
+   tu cuenta** — reportalo y consultá al usuario.
 
 ## Formato CSV
 
-`prices.csv` contiene **SOLO observaciones aceptadas y verificadas**. Rechazos,
-ambiguos, duplicados y pendientes van al `report.md`, jamás al CSV.
-
-Encabezado exacto (**13 columnas**: SIN `accepted` ni `rejection_reason` —
-son opcionales para el importador, que asume `accepted=true`; sin esas
-columnas no existe forma de escribir rechazos en el CSV):
+Contrato intacto con el importador: SOLO filas aceptadas, encabezado exacto de
+13 columnas (sin `accepted` ni `rejection_reason`):
 
 ```csv
 source,region,collected_at,material_code,external_id,title,url,currency,raw_price,package_quantity,package_unit,brand,seller
 ```
 
-- No agregues `accepted` ni `rejection_reason` aunque
-  `docs/examples/prices-example.csv` los muestre (ilustración histórica del
-  formato): este documento manda. Si tu salida tiene alguna fila con motivo de
-  rechazo, está mal: esa fila pertenece a report.md.
-
-Ejemplo de decisión (candidato con producto equivocado, verificado en su
-página):
-
-```text
-Candidato: "Cemento Blanco Portland Bolsa 50kg" ($16.000), material CAL_HIDRATADA_25KG
-
-MAL (fila en prices.csv):
-...,CAL_HIDRATADA_25KG,MLA111000003,Cemento Blanco Portland Bolsa 50kg,...,16000,1,BAG_50KG,,Corralon Sur,false,WRONG_PRODUCT
-
-BIEN:
-prices.csv -> sin fila para MLA111000003
-report.md  -> Rechazados y ambiguos: MLA111000003 Cemento Blanco 50kg $16.000 -- WRONG_PRODUCT
-```
-
-- `source=MERCADOLIBRE`, `region=GBA`, `currency=ARS`, `collected_at=YYYY-MM-DD`
-  real (una fecha por corrida, no futura).
-- `material_code` y queries salen del spec. `package_unit` compatible con la
-  bolsa nominal del código (`_50KG`→`BAG_50KG`, `_25KG`→`BAG_25KG`) o `UNIT`
-  para piezas; `package_quantity` entero si es UNIT.
-- `accepted` y `rejection_reason` no existen en este CSV: toda fila emitida es
-  una aceptación.
-- `raw_price` sin separadores de miles, punto decimal opcional.
-- Nunca agregues columnas ni `normalizedUnitPrice`: lo calcula CasitaCalc
-  server-side.
-- Si la corrida termina sin observaciones verificadas, dejá el archivo solo con
-  el encabezado: el preview del importador lo rechaza (`MISSING_HEADER`) y eso
-  es correcto — no había nada que importar.
-
-## report.md
-
-Corto, una sección por material: queries usadas; inspeccionados / aceptados /
-rechazados; rango observado `$X - $Y` (informativo, NUNCA precio oficial);
-warnings; y dos listas explícitas: **Rechazados y ambiguos** (con su motivo del
-vocabulario) y **Pendientes de verificación** (candidatos descubiertos por
-snippet cuya página no pudo verificarse). Si aceptadas < `minSamples`:
-
-```text
-Accepted: N
-Required minimum: M
-Status: INSUFFICIENT_SAMPLE_SIZE
-```
-
-No inventes ni relajes criterios para llegar al mínimo: el importador/admin
-decide después.
+- `source=MERCADOLIBRE`, `region=GBA`, `currency=ARS`, `collected_at` real.
+- `external_id` = `MLA<número>` sin guiones si la URL lo muestra; `""` si no.
+- `raw_price` sin separadores de miles. Nunca `normalizedUnitPrice`.
+- Rechazos/pendientes viven SOLO en report.md. Corrida sin filas → CSV con solo
+  encabezado (el preview lo rechaza y está bien).
 
 ## Red Flags — STOP
 
-- "Completo la URL / la cantidad / las medidas con lo que debería ser" → NO.
-  Pendiente en report.md.
-- "El snippet muestra título y precio claros, lo acepto directo" → NO.
-  Snippet = candidato; sin página verificada no hay fila.
-- "Lo agrego al CSV como rechazado para dejar auditoría" / "va con
-  `accepted=false` y su unidad real, como en el ejemplo" → NO. Los rechazos
-  viven SOLO en report.md; el CSV de 13 columnas ni siquiera tiene esas
-  columnas.
-- "Sumo bolsas de 25 kg para llegar a 5 muestras" → NO.
-  `INSUFFICIENT_SAMPLE_SIZE`.
-- "Ya tengo 3 de Ferro Norte pero necesito más muestras" → NO.
-  `maxSamplesPerSeller`; excedentes fuera.
-- "El pallet trae ~400 unidades" → NO. `UNKNOWN_PACKAGE_QUANTITY`.
-- "Uso el precio en cuotas, es el más visible" → NO. Precio de lista vigente.
-- "Es ladrillo hueco, será 18x18x33" → NO. Sin medidas verificables:
-  `NOT_ENOUGH_INFORMATION`.
-- "El mercado no vende 50 kg, cargo bolsas de 25 kg bajo el código `_50KG`" →
-  NO. El código lleva la presentación embebida: `INSUFFICIENT_SAMPLE_SIZE` +
-  sugerencia de alta de código nuevo.
-- "Me salteo la verificación de página aunque nadie pidió modo tarjeta" → NO.
-  Modo tarjeta solo con pedido explícito y limitaciones declaradas.
+- "El primer resultado es raro, pruebo el segundo" → NO. Primer resultado o
+  link validado; lo raro se reporta para validación humana.
+- "Es un pallet, divido $X / 90" → NO. Registrás `raw_price` completo +
+  `package_quantity=90`; divide el importador. Dividir vos = solo con
+  indicación explícita del usuario.
+- "No veo la cantidad, pongo 1" → NO. Esa suposición fue EL falso positivo
+  histórico ($115.000 por ladrillo). Queda pendiente de validación.
+- "Abro varias publicaciones para más muestras" → NO. Este método releva UNA
+  observación por material por diseño.
+- "El link validado falló, busco otro parecido" → NO. Reportar y consultar.
+- "La ficha dice otra presentación, descarto" → NO. Se registra la discrepancia
+  en report.md; decide el usuario.
 
 Violar la letra de estas reglas es violar su espíritu.
