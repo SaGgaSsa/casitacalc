@@ -5,27 +5,37 @@
   "currency": "ARS",
   "materials": [
     {
-      "materialCode": "CEMENTO_PORTLAND_50KG",
-      "nombre": "Cemento Portland 50 kg",
-      "expectedPackageUnit": "BAG_50KG",
+      "materialCode": "CEMENTO_PORTLAND_25KG",
+      "nombre": "Cemento Portland 25 kg",
+      "expectedPackageUnit": "BAG_25KG",
       "queries": [
-        "cemento portland 50 kg",
-        "cemento loma negra 50kg",
-        "cemento holcim plus 50kg"
+        "cemento portland",
+        "cemento loma negra",
+        "cemento holcim",
+        "cemento avellaneda"
       ],
       "required": {
-        "productType": "cemento portland (uso general; cualquier marca comparable)",
-        "weightKg": 50
+        "productType": "cemento portland gris de uso general (cualquier marca comparable)",
+        "weightKg": 25
       },
+      "note": "Relevo por nombre de producto, no por peso: el mercado argentino vende bolsas de 25 kg y en ML no hay publicaciones de 50 kg (verificado 2026-08-24). El material CEMENTO_PORTLAND_50KG queda en el catálogo pero fuera del relevamiento.",
       "excludeTerms": [
-        "25 kg",
-        "25kg",
-        "cemento blanco",
+        "50 kg",
+        "50kg",
+        "blanco",
         "refractario",
         "adhesivo",
         "pegamento",
         "cal ",
-        "yeso"
+        "yeso",
+        "granel",
+        "x 1 kg",
+        "x 2 kg",
+        "x 5 kg",
+        "x 10 kg",
+        "x 20 kg",
+        "juntamax",
+        "revokito"
       ],
       "minSamples": 5,
       "targetSamples": 8,
@@ -37,9 +47,9 @@
       "nombre": "Cal hidratada 25 kg",
       "expectedPackageUnit": "BAG_25KG",
       "queries": [
-        "cal hidratada 25 kg",
-        "cal hidratada bolsa 25kg",
-        "cal xtracem 25kg"
+        "cal hidratada",
+        "cal comun",
+        "cal hidrat extra"
       ],
       "required": {
         "productType": "cal hidratada (NO hidráulica, NO viva, NO agrícola)",

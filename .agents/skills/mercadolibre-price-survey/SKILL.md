@@ -37,21 +37,35 @@ va a `report.md`.
 ## Método
 
 1. Leé la PriceSpec del material. Ejecutá sus queries en mercadolibre.com.ar
-   navegando la web.
-2. **Dos niveles de evidencia:** un resultado de buscador (snippet) es solo un
+   **con un navegador real** (ej. Playwright MCP con Chrome local): el fetch
+   directo y los proxies de renderizado reciben el muro anti-bot
+   (`gz/account-verification`), y la API oficial sigue prohibida. Con sesión ya
+   validada, extraé los datos del DOM del listado (título, precio, vendedor de
+   tarjeta) o del JSON-LD embebido en cada página.
+2. **Queries por nombre de producto, NO por peso.** El buscador de ML ignora
+   sistemáticamente los términos de peso ("cemento portland 50 kg" devuelve
+   bolsas de 25 kg, de 1 kg y cemento blanco) y las presentaciones cambian con
+   el mercado (el cemento argentino pasó de 50 kg a 25 kg). La presentación se
+   valida sobre título/tarjeta/ficha, nunca en la query. Si el mercado ya no
+   ofrece la presentación que nombra el código (ej. `_50KG`), cortá ese
+   material con `INSUFFICIENT_SAMPLE_SIZE`, dejalo asentado en `report.md` y
+   sugerí revisión de catálogo (alta de un código alternativo): nunca reemplaces
+   la presentación por tu cuenta ni reutilices el código con otra presentación.
+3. **Dos niveles de evidencia:** un resultado de buscador (snippet) es solo un
    **candidato** que descubre URLs. Para aceptar un precio necesitás haber
    **verificado directamente la página de la publicación** (título,
    presentación/dimensiones y precio observados en la propia página).
    Candidato no verificado (ej.: login-wall) → pendiente en `report.md`,
-   nunca fila en el CSV.
-3. Aceptá hasta `targetSamples`; cortá en `maxSamples`. No reutilices la misma
+   nunca fila en el CSV. Excepción: modo tarjeta (ver Evidencia).
+4. Aceptá hasta `targetSamples`; cortá en `maxSamples`. No reutilices la misma
    publicación. Cap determinista: **no aceptes más de `maxSamplesPerSeller`
    publicaciones del mismo vendedor** (campo del spec; default 2 si falta).
    Los excedentes por cap van al `report.md`. Tiendas oficiales no quedan
    excluidas por serlo, pero sí respetan el cap.
-4. Duplicado = mismo MLA ID o misma URL. Canonicalizá la URL (sin parámetros de
+5. Duplicado = mismo MLA ID o misma URL. Canonicalizá la URL (sin parámetros de
    tracking tipo `matt_tool`). `external_id` = `MLA<número>` sin guiones; `""`
-   si no puede determinarse.
+   si no puede determinarse — incluidas las URLs `/p/MLA…` y `/up/MLAU…`, que
+   identifican productos de catálogo, no publicaciones individuales.
 
 ## Reglas de aceptación
 
@@ -62,7 +76,14 @@ va a `report.md`.
   Pallet/pack sin cantidad declarada → rechazado con motivo
   `UNKNOWN_PACKAGE_QUANTITY` en el `report.md` (nunca estimar).
 - No descartes por precio raro: una publicación válida con precio extraño sigue
-  siendo evidencia; los outliers los detecta otra capa.
+  siendo evidencia; los outliers los detecta otra capa. Pero si una fila
+  "unitaria" queda muy fuera del cluster (ej. precio típico de pallet en un
+  título sin pack), el warning en `report.md` es obligatorio.
+- Cuidado con los filtros por substring: "5 kg" matchea dentro de "25 kg".
+  Usá patrones con borde (ej. "x 5 kg") o validación positiva del peso. Para
+  ladrillos/bloques validá el **conjunto** de dimensiones sin asumir orden:
+  aceptá solo si alguna terna ordenada es exactamente {18,18,33} y rechazá
+  ternas vecinas ({8,18,33}, {12,18,33}, {18,18,40}).
 
 ## Evidencia (anti-alucinación)
 
@@ -72,6 +93,20 @@ falta verificación completa (no pudiste abrir su URL real, no se ve el precio,
 la presentación es ambigua), **no generes fila**: anotalo en `report.md` como
 pendiente o rechazado, según corresponda. Jamás derives ni completes un campo
 a partir de otros datos.
+
+### Modo tarjeta (solo a pedido explícito del usuario)
+
+Para acelerar la corrida, el usuario puede pedir aceptar filas desde los datos
+visibles en la tarjeta del listado (DOM, no snippet de buscador externo). En ese
+modo, solo pasan candidatos cuyo título declare la presentación sin ambigüedad
+(peso exacto o conjunto completo de dimensiones) y con precio vigente visible;
+sin esa señal → `NOT_ENOUGH_INFORMATION`. Limitaciones que debés declarar en
+`report.md`: la ficha real puede contradecir al título (caso real: una cal
+"Hidrat Extra" cuya ficha dice "Modelo: Hidráulica" — solo detectable abriendo
+la página); en tarjetas de catálogo (`/p/`, `/up/`) el vendedor mostrado es la
+marca/tienda oficial y no el vendedor real, por lo que el cap se aplica sobre
+ese valor observable; y no hay forma de ver packs ambiguos ni condición.
+Indicá siempre qué nivel de evidencia usó cada sección del reporte.
 
 ## Motivos de rechazo (vocabulario cerrado, SOLO report.md)
 
@@ -169,5 +204,10 @@ decide después.
 - "Uso el precio en cuotas, es el más visible" → NO. Precio de lista vigente.
 - "Es ladrillo hueco, será 18x18x33" → NO. Sin medidas verificables:
   `NOT_ENOUGH_INFORMATION`.
+- "El mercado no vende 50 kg, cargo bolsas de 25 kg bajo el código `_50KG`" →
+  NO. El código lleva la presentación embebida: `INSUFFICIENT_SAMPLE_SIZE` +
+  sugerencia de alta de código nuevo.
+- "Me salteo la verificación de página aunque nadie pidió modo tarjeta" → NO.
+  Modo tarjeta solo con pedido explícito y limitaciones declaradas.
 
 Violar la letra de estas reglas es violar su espíritu.

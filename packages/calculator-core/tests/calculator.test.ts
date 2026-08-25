@@ -45,10 +45,10 @@ describe("calculateMaterials — muros", () => {
   });
 
   it("el cemento del rubro mampostería es continuo (2 decimales)", () => {
-    const cemento = item("CEMENTO_PORTLAND_50KG");
-    // 97.2 * 0.12 * 1.05 = 12.247 → 12.25
+    const cemento = item("CEMENTO_PORTLAND_25KG");
+    // 97.2 * 0.24 * 1.05 = 24.494 → 24.49
     expect(cemento.unidad).toBe(Unit.BOLSA);
-    expect(cemento.cantidadFinal).toBe(13);
+    expect(cemento.cantidadFinal).toBe(25);
   });
 });
 

@@ -33,3 +33,6 @@ packages/db/prisma/*.db
 scripts/meli-spike/.env.meli
 scripts/meli-spike/.state.json
 scripts/meli-spike/certs/
+
+# Sesiones del navegador (Playwright MCP)
+.playwright-mcp/

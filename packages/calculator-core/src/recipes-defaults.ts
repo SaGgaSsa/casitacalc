@@ -38,7 +38,7 @@ export const DEFAULT_RECIPES: Recipe[] = [
     sistemaConstructivo: ConstructionSystem.LADRILLO_HUECO,
     items: [
       { codigoMaterial: "LADRILLO_HUECO_18X18X33", cantidadPorUnidad: 16, desperdicioPct: D.MEDIO },
-      { codigoMaterial: "CEMENTO_PORTLAND_50KG", cantidadPorUnidad: 0.12, desperdicioPct: D.BAJO },
+      { codigoMaterial: "CEMENTO_PORTLAND_25KG", cantidadPorUnidad: 0.24, desperdicioPct: D.BAJO },
       { codigoMaterial: "CAL_HIDRATADA_25KG", cantidadPorUnidad: 0.1, desperdicioPct: D.BAJO },
       { codigoMaterial: "ARENA_GRUESA", cantidadPorUnidad: 0.022, desperdicioPct: D.MEDIO },
     ],
@@ -60,7 +60,7 @@ export const DEFAULT_RECIPES: Recipe[] = [
     tipoTecho: RoofType.LOSA,
     items: [
       { codigoMaterial: "ACERO_LOSA_ADL15", cantidadPorUnidad: 10, desperdicioPct: D.BAJO },
-      { codigoMaterial: "CEMENTO_PORTLAND_50KG", cantidadPorUnidad: 1, desperdicioPct: D.BAJO },
+      { codigoMaterial: "CEMENTO_PORTLAND_25KG", cantidadPorUnidad: 2, desperdicioPct: D.BAJO },
       { codigoMaterial: "ARENA_FINA", cantidadPorUnidad: 0.055, desperdicioPct: D.MEDIO },
       { codigoMaterial: "PIEDRA_BOLA", cantidadPorUnidad: 0.085, desperdicioPct: D.MEDIO },
     ],

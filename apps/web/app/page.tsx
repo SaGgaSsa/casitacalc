@@ -29,7 +29,7 @@ import { getAnonymousVisitor } from "@/lib/visitor-server";
 
 const MATERIALES_DESTACADOS = [
   "LADRILLO_HUECO_18X18X33",
-  "CEMENTO_PORTLAND_50KG",
+  "CEMENTO_PORTLAND_25KG",
   "CAL_HIDRATADA_25KG",
   "ARENA_GRUESA",
   "CHAPA_TRAPEZOIDAL_C25",

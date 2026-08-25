@@ -1,6 +1,7 @@
 [
   { "codigo": "LADRILLO_HUECO_18X18X33", "nombre": "Ladrillo hueco 18x18x33", "categoria": "Mampostería", "unidad": "un" },
   { "codigo": "CEMENTO_PORTLAND_50KG", "nombre": "Cemento Portland 50 kg", "categoria": "Aglomerantes", "unidad": "bolsa" },
+  { "codigo": "CEMENTO_PORTLAND_25KG", "nombre": "Cemento Portland 25 kg", "categoria": "Aglomerantes", "unidad": "bolsa" },
   { "codigo": "CAL_HIDRATADA_25KG", "nombre": "Cal hidratada 25 kg", "categoria": "Aglomerantes", "unidad": "bolsa" },
   { "codigo": "ARENA_GRUESA", "nombre": "Arena gruesa de construcción", "categoria": "Agregados", "unidad": "m3" },
   { "codigo": "ARENA_FINA", "nombre": "Arena fina", "categoria": "Agregados", "unidad": "m3" },
