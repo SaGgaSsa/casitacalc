@@ -3,7 +3,7 @@ import { UnitEnum } from "./enums";
 
 /** Item del cómputo de materiales: un material con su cantidad y precio. */
 export const CalculationResultItemSchema = z.object({
-  /** Código estable del material (ej: LADRILLO_HUECO_18x18x33). */
+  /** Código estable del material (ej: LADRILLO_HUECO_12x18x33). */
   codigoMaterial: z.string(),
   nombreMaterial: z.string(),
   /** Rubro al que pertenece: Mampostería, Techo, Baños... */

@@ -12,7 +12,7 @@ import { prisma } from "./client";
  * para demo; cada usuario debe ajustarlos a su proveedor/zona.
  */
 const PRECIOS_REFERENCIA: Record<string, number> = {
-  LADRILLO_HUECO_18X18X33: 650,
+  LADRILLO_HUECO_12X18X33: 650,
   CEMENTO_PORTLAND_50KG: 9500,
   CEMENTO_PORTLAND_25KG: 11000,
   CAL_HIDRATADA_25KG: 4800,

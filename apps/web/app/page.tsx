@@ -28,7 +28,7 @@ import { formatMoney, formatDate } from "@/lib/format";
 import { getAnonymousVisitor } from "@/lib/visitor-server";
 
 const MATERIALES_DESTACADOS = [
-  "LADRILLO_HUECO_18X18X33",
+  "LADRILLO_HUECO_12X18X33",
   "CEMENTO_PORTLAND_25KG",
   "CAL_HIDRATADA_25KG",
   "ARENA_GRUESA",

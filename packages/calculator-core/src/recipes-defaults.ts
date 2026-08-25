@@ -37,7 +37,7 @@ export const DEFAULT_RECIPES: Recipe[] = [
     rubro: Rubro.MAMPOSTERIA,
     sistemaConstructivo: ConstructionSystem.LADRILLO_HUECO,
     items: [
-      { codigoMaterial: "LADRILLO_HUECO_18X18X33", cantidadPorUnidad: 16, desperdicioPct: D.MEDIO },
+      { codigoMaterial: "LADRILLO_HUECO_12X18X33", cantidadPorUnidad: 16, desperdicioPct: D.MEDIO },
       { codigoMaterial: "CEMENTO_PORTLAND_25KG", cantidadPorUnidad: 0.24, desperdicioPct: D.BAJO },
       { codigoMaterial: "CAL_HIDRATADA_25KG", cantidadPorUnidad: 0.1, desperdicioPct: D.BAJO },
       { codigoMaterial: "ARENA_GRUESA", cantidadPorUnidad: 0.022, desperdicioPct: D.MEDIO },

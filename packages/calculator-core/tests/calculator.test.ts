@@ -29,7 +29,7 @@ function item(codigoMaterial: string) {
 
 describe("calculateMaterials — muros", () => {
   it("casa 8x10 sin aberturas: 97.2 m² netos → ladrillos con 10% de desperdicio", () => {
-    const ladrillos = item("LADRILLO_HUECO_18X18X33");
+    const ladrillos = item("LADRILLO_HUECO_12X18X33");
     // 97.2 m² * 16 un/m² * 1.10 = 1710.72 → ceil 1711
     expect(ladrillos.cantidad).toBeCloseTo(1555.2);
     expect(ladrillos.cantidadFinal).toBe(1711);
@@ -39,7 +39,7 @@ describe("calculateMaterials — muros", () => {
   it("las aberturas reducen los materiales de muro", () => {
     const conAberturas = calculateHouse(
       baseInput({ aberturas: [{ tipo: "PUERTA", anchoM: 1, altoM: 2, cantidad: 5 }] }),
-    ).items.find((i) => i.codigoMaterial === "LADRILLO_HUECO_18X18X33");
+    ).items.find((i) => i.codigoMaterial === "LADRILLO_HUECO_12X18X33");
     // muro bruto 97.2 − 10 = 87.2 m² → 16 * 87.2 * 1.1 = 1534.72 → ceil 1535
     expect(conAberturas?.cantidadFinal).toBe(1535);
   });

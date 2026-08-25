@@ -19,7 +19,7 @@ function baseInput(overrides: Partial<HouseInput> = {}): HouseInput {
 }
 
 const PRECIOS = {
-  LADRILLO_HUECO_18X18X33: 650,
+  LADRILLO_HUECO_12X18X33: 650,
   CEMENTO_PORTLAND_50KG: 8500,
 };
 
@@ -27,7 +27,7 @@ describe("applyPrices", () => {
   it("asigna precio unitario y subtotal por item", () => {
     const result = applyPrices(calculateHouse(baseInput()), PRECIOS);
     const ladrillos = result.items.find(
-      (i) => i.codigoMaterial === "LADRILLO_HUECO_18X18X33",
+      (i) => i.codigoMaterial === "LADRILLO_HUECO_12X18X33",
     );
     expect(ladrillos?.precioUnitario).toBe(650);
     expect(ladrillos?.subtotal).toBe(650 * (ladrillos?.cantidadFinal ?? 0));
