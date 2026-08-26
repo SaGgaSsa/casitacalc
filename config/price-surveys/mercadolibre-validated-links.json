@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "_comment": "Links de Mercado Libre validados manualmente por el usuario. El skill mercadolibre-price-survey reutiliza estas URLs en cada corrida (una sola verificación por material) en vez de buscar de nuevo. Solo agregar entradas que el usuario aprobó explícitamente. Si un link deja de funcionar, NO se busca reemplazo automáticamente: se reporta y decide el usuario.",
   "links": {
     "CEMENTO_PORTLAND_25KG": {
@@ -28,6 +28,114 @@
       "package_unit": "UNIT",
       "validatedAt": "2026-08-24",
       "note": "Validado por usuario en corrida 3 (método v2). $3.000/unidad visible (JSON-LD $2.850). El código se renombró desde LADRILLO_HUECO_18X18X33: la medida real que se usa es 12x18x33."
+    },
+    "ARENA": {
+      "url": "https://www.mercadolibre.com.ar/up/MLAU256624573",
+      "external_id": "MLAU256624573",
+      "title": "Arena Fina Construccion Bolson + (seña Por Bolson)",
+      "package_quantity": 1,
+      "package_unit": "M3",
+      "validatedAt": "2026-08-25",
+      "note": "Aprobado por usuario en revisión de la corrida v3: 'el precio está bien, es el del bolson (50.000 en Easy)'. Se releva buscando 'arena fina'. El material unifica la ex arena gruesa/fina (siempre se usa arena fina)."
+    },
+    "PIEDRA_BOLA": {
+      "url": "https://www.mercadolibre.com.ar/piedra-en-bolson-x-900kg-zona-oeste-capital/up/MLAU365715250",
+      "external_id": "MLAU365715250",
+      "title": "Piedra En Bolsón X 900kg Zona Oeste Capital",
+      "package_quantity": 1,
+      "package_unit": "M3",
+      "validatedAt": "2026-08-25",
+      "note": "Link aprobado por usuario en revisión de la corrida v3 (búsqueda 'piedra construccion'). Volumen indicado por el usuario: el bolson es de 1 m3."
+    },
+    "ACERO_LOSA_ADL15": {
+      "url": "https://www.mercadolibre.com.ar/varilla-de-hierro-aletado-8mm-construccion/up/MLAU282801822",
+      "external_id": "MLAU282801822",
+      "title": "Varilla De Hierro Aletado 8mm Construccion",
+      "package_quantity": 4.74,
+      "package_unit": "KG",
+      "validatedAt": "2026-08-25",
+      "note": "Aprobado por usuario en revisión de la corrida v3 ('varilla 8mm x 12 metros'). Peso por barra 4,74 kg declarado en la ficha."
+    },
+    "CHAPA_TRAPEZOIDAL_C25": {
+      "url": "https://www.mercadolibre.com.ar/chapa-trapezoidal-color-c25-largo-200-mts-ternium-color-negra/p/MLA68974171",
+      "external_id": "MLA68974171",
+      "title": "Chapa Trapezoidal Color C25 Largo 2,00 Mts Ternium Color Negra",
+      "package_quantity": 2,
+      "package_unit": "METER",
+      "validatedAt": "2026-08-25",
+      "note": "Aprobado por usuario en revisión de la corrida v3: lámina 2m x 1,1m."
+    },
+    "TIRANTE_MADERA_2X4": {
+      "url": "https://www.mercadolibre.com.ar/tirante-de-madera-pino-cepillado-2-x-4-x-305-mts-techos/up/MLAU267215675",
+      "external_id": "MLAU267215675",
+      "title": "Tirante De Madera Pino Cepillado 2 X 4 X 3.05 Mts Techos",
+      "package_quantity": 3.05,
+      "package_unit": "METER",
+      "validatedAt": "2026-08-25",
+      "note": "Aprobado por usuario en revisión de la corrida v3. El código se renombró desde TIRANTE_MADERA_2X3: el tirante real es 2x4."
+    },
+    "TORNILLO_AUTOPERFORANTE": {
+      "url": "https://www.mercadolibre.com.ar/tornillo-autoperf-hex-pta-mecha-14-x-2-12--63-x-63mm/up/MLAU3919414290",
+      "external_id": "MLAU3919414290",
+      "title": "Tornillo Autoperf Hex Pta Mecha 14 X 2 1/2 (6,3 X 63mm)",
+      "package_quantity": 200,
+      "package_unit": "UNIT",
+      "validatedAt": "2026-08-25",
+      "note": "Aprobado por usuario en revisión de la corrida v3: hexagonal punta mecha para techa (reemplaza al tornillo de durwall relevado primero). Item MLA3191166096 según pdp_filters."
+    },
+    "INODORO_COMPLETO": {
+      "url": "https://www.mercadolibre.com.ar/inodoro-largo-de-loza-sanitaria-con-tanque-y-asiento-modelo-delfi-en-blanco/p/MLA66064853",
+      "external_id": "MLA66064853",
+      "title": "Inodoro Largo de Loza Sanitaria con Tanque y Asiento, Modelo Delfi en Blanco",
+      "package_quantity": 1,
+      "package_unit": "UNIT",
+      "validatedAt": "2026-08-25",
+      "note": "Aprobado por usuario en revisión de la corrida v3 (reemplaza al smart toilet relevado primero)."
+    },
+    "LAVATORIO_PEDESTAL": {
+      "url": "https://www.mercadolibre.com.ar/bacha-de-bano-aries-m311-blanca-61x475x875cm-cpedestal/up/MLAU3381299035",
+      "external_id": "MLAU3381299035",
+      "title": "Bacha De Baño Aries M-311 Blanca 61x47,5x87,5cm C/pedestal",
+      "package_quantity": 1,
+      "package_unit": "UNIT",
+      "validatedAt": "2026-08-25",
+      "note": "Aprobado por usuario en revisión de la corrida v3: bacha de baño c/pedestal."
+    },
+    "DUCHA_JUEGO": {
+      "url": "https://www.mercadolibre.com.ar/juego-griferia-bano-combo-peirano-pura-bano-bidet-ducha/up/MLAU234753459",
+      "external_id": "MLAU234753459",
+      "title": "Juego Griferia Baño Combo Peirano Pura Baño Bidet Ducha",
+      "package_quantity": 1,
+      "package_unit": "UNIT",
+      "validatedAt": "2026-08-25",
+      "note": "Aprobado por usuario en revisión de la corrida v3 (reemplaza a la columna digital relevada primero)."
+    },
+    "CANO_PVC_20_3M": {
+      "url": "https://www.mercadolibre.com.ar/cano-rigido-pvc-20mm-kalop-x-3mts-exterior-x-30-unidades/p/MLA28678738",
+      "external_id": "MLA28678738",
+      "title": "Caño Rigido Pvc 20mm Kalop X 3mts Exterior X 30 Unidades",
+      "package_quantity": 30,
+      "package_unit": "UNIT",
+      "validatedAt": "2026-08-25",
+      "note": "Aprobado por usuario en revisión de la corrida v3. El código se renombró desde CANO_PVC_40_4M: el caño real es PVC eléctrico 20mm x 3m. Se vende por packs (x5/x10/x30); la receta necesita 2/baño, se registra el pack tal cual se vende."
+    },
+    "CERAMICA_PISO": {
+      "url": "https://www.mercadolibre.com.ar/ceramica-scop-asturias-deco-453x453-calcareo-m2-1ra/up/MLAU3647535113",
+      "external_id": "MLAU3647535113",
+      "title": "Ceramica Scop Asturias Deco 45,3x45,3 Calcareo M2 1ra",
+      "package_quantity": 1,
+      "package_unit": "M2",
+      "validatedAt": "2026-08-25",
+      "note": "Aprobado por usuario en revisión de la corrida v3: 'está declarado como /m2, calcular con eso'."
+    },
+    "CERAMICA_PARED": {
+      "url": "https://www.mercadolibre.com.ar/ceramica-33x33-azul-simil-venecita-revestimiento-pileta/up/MLAU259623289",
+      "external_id": "MLAU259623289",
+      "title": "Cerámica 33x33 Azul Simil Venecita Revestimiento Pileta",
+      "package_quantity": 1,
+      "package_unit": "M2",
+      "validatedAt": "2026-08-25",
+      "note": "Aprobado por usuario en revisión de la corrida v3: igual criterio que cerámica piso (/m2)."
     }
   }
 }

@@ -1,10 +1,16 @@
 {
-  "version": 2,
-  "_comment": "Método v2 del skill mercadolibre-price-survey: UNA query genérica por material (nombre de producto, sin pesos/medidas/cantidades), primer resultado orgánico, una sola verificación. La validación fina es humana; los links aprobados se persisten en mercadolibre-validated-links.json y en corridas siguientes se reutilizan sin buscar.",
+  "version": 4,
+  "_comment": "Método v2 del skill mercadolibre-price-survey: UNA query genérica por material (nombre de producto, sin pesos/medidas/cantidades de presentación), primer resultado orgánico, una sola verificación. La validación fina es humana; los links aprobados se persisten en mercadolibre-validated-links.json y en corridas siguientes se reutilizan sin buscar. Corrida 2026-08-25 (v4): catálogo consolidado tras revisión humana — CEMENTO_PORTLAND_50KG removido (resuelto con 25kg), ARENA unificada (siempre fina, se busca como 'arena fina'), tirante 2x4, caño PVC 20mm x 3m, pegamento cerámico 25kg. Varios materiales tienen link aprobado por el usuario.",
   "source": "MERCADOLIBRE",
   "region": "GBA",
   "currency": "ARS",
   "materials": [
+    {
+      "materialCode": "LADRILLO_HUECO_12X18X33",
+      "nombre": "Ladrillo hueco 12x18x33",
+      "query": "ladrillo hueco",
+      "expectedPackageUnit": "UNIT"
+    },
     {
       "materialCode": "CEMENTO_PORTLAND_25KG",
       "nombre": "Cemento Portland 25 kg",
@@ -18,10 +24,118 @@
       "expectedPackageUnit": "BAG_25KG"
     },
     {
-      "materialCode": "LADRILLO_HUECO_12X18X33",
-      "nombre": "Ladrillo hueco 12x18x33",
-      "query": "ladrillo hueco",
+      "materialCode": "ARENA",
+      "nombre": "Arena",
+      "query": "arena fina",
+      "expectedPackageUnit": "M3"
+    },
+    {
+      "materialCode": "PIEDRA_BOLA",
+      "nombre": "Piedra bola 20/40",
+      "query": "piedra construccion",
+      "expectedPackageUnit": "M3"
+    },
+    {
+      "materialCode": "ACERO_LOSA_ADL15",
+      "nombre": "Acero para losa (varillas + malla)",
+      "query": "varilla hierro para losa",
+      "expectedPackageUnit": "KG"
+    },
+    {
+      "materialCode": "CHAPA_TRAPEZOIDAL_C25",
+      "nombre": "Chapa trapezoidal C25",
+      "query": "chapa trapezoidal c25",
+      "expectedPackageUnit": "METER"
+    },
+    {
+      "materialCode": "TIRANTE_MADERA_2X4",
+      "nombre": "Tirante de madera 2x4",
+      "query": "tirante madera 2x4",
+      "expectedPackageUnit": "METER"
+    },
+    {
+      "materialCode": "TORNILLO_AUTOPERFORANTE",
+      "nombre": "Tornillo autoperforante techa",
+      "query": "tornillo autoperforante techa",
       "expectedPackageUnit": "UNIT"
+    },
+    {
+      "materialCode": "FILM_BARRERA_HIDRICA",
+      "nombre": "Film barrera de humedad",
+      "query": "film barrera de humedad",
+      "expectedPackageUnit": "M2"
+    },
+    {
+      "materialCode": "INODORO_COMPLETO",
+      "nombre": "Inodoro completo con mochila",
+      "query": "inodoro completo",
+      "expectedPackageUnit": "UNIT"
+    },
+    {
+      "materialCode": "LAVATORIO_PEDESTAL",
+      "nombre": "Lavatorio con pedestal",
+      "query": "bacha de baño con pedestal",
+      "expectedPackageUnit": "UNIT"
+    },
+    {
+      "materialCode": "GRIFERIA_LAVATORIO",
+      "nombre": "Grifería de lavatorio",
+      "query": "griferia lavatorio",
+      "expectedPackageUnit": "UNIT"
+    },
+    {
+      "materialCode": "DUCHA_JUEGO",
+      "nombre": "Juego de ducha",
+      "query": "juego de ducha",
+      "expectedPackageUnit": "UNIT"
+    },
+    {
+      "materialCode": "CANO_PVC_100_4M",
+      "nombre": "Caño PVC 110 mm x 4 m",
+      "query": "cano pvc 110",
+      "expectedPackageUnit": "UNIT"
+    },
+    {
+      "materialCode": "CANO_PVC_20_3M",
+      "nombre": "Caño PVC 20 mm x 3 m",
+      "query": "cano rigido pvc 20mm",
+      "expectedPackageUnit": "UNIT"
+    },
+    {
+      "materialCode": "DESAGUE_PISO",
+      "nombre": "Desagüe de piso",
+      "query": "desague de piso",
+      "expectedPackageUnit": "UNIT"
+    },
+    {
+      "materialCode": "SIFON_LAVATORIO",
+      "nombre": "Sifón lavatorio",
+      "query": "sifon lavatorio",
+      "expectedPackageUnit": "UNIT"
+    },
+    {
+      "materialCode": "CERAMICA_PISO",
+      "nombre": "Cerámica de piso",
+      "query": "ceramica de piso",
+      "expectedPackageUnit": "M2"
+    },
+    {
+      "materialCode": "CERAMICA_PARED",
+      "nombre": "Cerámica de pared",
+      "query": "ceramica revestimiento pared",
+      "expectedPackageUnit": "M2"
+    },
+    {
+      "materialCode": "PEGAMENTO_CERAMICO_25KG",
+      "nombre": "Pegamento cerámico 25 kg",
+      "query": "pegamento ceramico",
+      "expectedPackageUnit": "BAG_25KG"
+    },
+    {
+      "materialCode": "PASTINA",
+      "nombre": "Pastina",
+      "query": "pastina",
+      "expectedPackageUnit": "KG"
     }
   ]
 }
