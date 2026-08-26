@@ -3,14 +3,18 @@ import { ArrowLeft, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RecalculateButton } from "@/components/recalculate-button";
 import { ResultView } from "@/components/result-view";
-import { getProjectFull, getLatestResult } from "@casitacalc/db";
+import { getLatestResult, getPreciosActualizadoEn, getProjectFull } from "@casitacalc/db";
 import { getAnonymousVisitor } from "@/lib/visitor-server";
 
 export default async function ProjectResultPage({
   params,
 }: PageProps<"/projects/[id]/result">) {
   const { id } = await params;
-  const [project, result] = await Promise.all([getProjectFull(id), getLatestResult(id)]);
+  const [project, result, preciosActualizadoEn] = await Promise.all([
+    getProjectFull(id),
+    getLatestResult(id),
+    getPreciosActualizadoEn(),
+  ]);
 
   if (!project) {
     return (
@@ -78,7 +82,13 @@ export default async function ProjectResultPage({
         <RecalculateButton projectId={id} />
       </div>
 
-      <ResultView result={result} />
+      <ResultView
+        result={result}
+        preciosDesactualizados={
+          preciosActualizadoEn !== null &&
+          preciosActualizadoEn > new Date(result.fechaCreacion)
+        }
+      />
     </div>
   );
 }

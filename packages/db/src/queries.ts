@@ -9,7 +9,7 @@ import {
   type UpdateRecipeInput,
 } from "@casitacalc/shared";
 import { DEFAULT_REGION, type RegionCode } from "@casitacalc/shared";
-import type { ModerationStatus, Prisma, ProjectVisibility } from "@prisma/client";
+import { ReferencePriceStatus, type ModerationStatus, Prisma, ProjectVisibility } from "@prisma/client";
 import { calculateHouse } from "@casitacalc/calculator-core";
 import { prisma } from "./client";
 import { getPublishedPrices, type PublishedPriceInfo } from "./pricing";
@@ -343,6 +343,29 @@ export async function updateMaterialPrice(
   return materialToDomain(updated);
 }
 
+/**
+ * Fecha del último cambio efectivo de precios: el validFrom más reciente entre
+ * los relevamientos PUBLISHED de la región y la última edición manual del
+ * catálogo. La usan las vistas de resultados para avisar que un cálculo quedó
+ * desactualizado; null si nunca hubo precios.
+ */
+export async function getPreciosActualizadoEn(
+  region: RegionCode = DEFAULT_REGION,
+): Promise<Date | null> {
+  const [publicado, manual] = await Promise.all([
+    prisma.materialReferencePrice.aggregate({
+      where: { region, status: ReferencePriceStatus.PUBLISHED },
+      _max: { validFrom: true },
+    }),
+    prisma.material.aggregate({ _max: { fechaActualizacionPrecio: true } }),
+  ]);
+  const candidatos = [publicado._max.validFrom, manual._max.fechaActualizacionPrecio].filter(
+    (d): d is Date => d !== null,
+  );
+  if (candidatos.length === 0) return null;
+  return new Date(Math.max(...candidatos.map((d) => d.getTime())));
+}
+
 // ── Recetas ────────────────────────────────────────────────────────────────
 
 export async function listRecipes(): Promise<Recipe[]> {
@@ -442,5 +465,5 @@ export async function getLatestResult(projectId: string) {
     }
   }
 
-  return { ...domain, subtotalesPorRubro };
+  return { ...domain, subtotalesPorRubro, fechaCreacion: row.createdAt.toISOString() };
 }

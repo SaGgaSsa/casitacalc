@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ResultView } from "@/components/result-view";
-import { getLatestResult, getProjectByShareToken } from "@casitacalc/db";
+import { getLatestResult, getPreciosActualizadoEn, getProjectByShareToken } from "@casitacalc/db";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +39,10 @@ export default async function SharePage({
     );
   }
 
-  const result = await getLatestResult(project.id);
+  const [result, preciosActualizadoEn] = await Promise.all([
+    getLatestResult(project.id),
+    getPreciosActualizadoEn(),
+  ]);
   const sup = Number(project.anchoM) * Number(project.largoM);
   const sistema = project.sistemaConstructivo.replace(/_/g, " ").toLowerCase();
 
@@ -82,7 +85,13 @@ export default async function SharePage({
       {/* Cómputo compartido (si existe) */}
       <div className="mt-6">
         {result && result.items.length > 0 ? (
-          <ResultView result={result} />
+          <ResultView
+            result={result}
+            preciosDesactualizados={
+              preciosActualizadoEn !== null &&
+              preciosActualizadoEn > new Date(result.fechaCreacion)
+            }
+          />
         ) : (
           <Card className="shadow-sm">
             <CardContent className="py-8 text-center text-sm text-muted-foreground">

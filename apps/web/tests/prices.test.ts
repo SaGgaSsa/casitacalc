@@ -530,6 +530,38 @@ describe("publicación y consumo del precio", () => {
   });
 });
 
+describe("detección de cambio de precios", () => {
+  it("getPreciosActualizadoEn refleja base del catálogo, publicación y edición manual", async () => {
+    const { getPreciosActualizadoEn, updateMaterialPrice } = await import("@casitacalc/db");
+    const base = new Date("2026-01-01T00:00:00.000Z");
+
+    // Normaliza la base: la DB de test persiste ediciones manuales de corridas anteriores.
+    await prisma.material.updateMany({ data: { fechaActualizacionPrecio: base } });
+    expect(await getPreciosActualizadoEn()).toEqual(base);
+
+    // Publicar un relevamiento posterior pisa la fecha, solo en su región.
+    const { id } = await importarColeccionConCemento("2026-08-20");
+    await publishPOST(new Request("http://localhost/pub"), await params({ id }));
+    expect(await getPreciosActualizadoEn()).toEqual(new Date("2026-08-20T00:00:00.000Z"));
+    expect(await getPreciosActualizadoEn("CABA")).toEqual(base);
+
+    // Un relevamiento DRAFT no cuenta.
+    await importarColeccionConCemento("2026-08-25");
+    expect(await getPreciosActualizadoEn()).toEqual(new Date("2026-08-20T00:00:00.000Z"));
+
+    // Una edición manual (sin región) también mueve la aguja en cualquier región.
+    await updateMaterialPrice(await materialId("CEMENTO_PORTLAND_25KG"), { precio: 9999 });
+    const manual = await getPreciosActualizadoEn("GBA");
+    expect(manual!.getTime()).toBeGreaterThan(new Date("2026-08-20T00:00:00.000Z").getTime());
+
+    // Restaura el catálogo: la DB de test persiste entre corridas y tests.
+    await prisma.material.update({
+      where: { codigo: "CEMENTO_PORTLAND_25KG" },
+      data: { precioActual: 9500, fechaActualizacionPrecio: base },
+    });
+  });
+});
+
 describe("exclusión de observaciones y recálculo", () => {
   it("excluir una observación recalcula la mediana en borrador", async () => {
     const { id } = await importarColeccionConCemento();

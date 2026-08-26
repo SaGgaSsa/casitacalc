@@ -24,7 +24,13 @@ const ORDEN_RUBROS: string[] = [Rubro.MAMPOSTERIA, Rubro.TECHO, Rubro.BANOS];
  * La usan el detalle del dueño (/projects/[id]/result) y las vistas
  * compartidas/públicas (/share/[token]).
  */
-export function ResultView({ result }: { result: CalculationResult }) {
+export function ResultView({
+  result,
+  preciosDesactualizados = false,
+}: {
+  result: CalculationResult;
+  preciosDesactualizados?: boolean;
+}) {
   const rubros = [...result.items]
     .sort(
       (a, b) =>
@@ -37,6 +43,17 @@ export function ResultView({ result }: { result: CalculationResult }) {
 
   return (
     <>
+      {/* Aviso de precios viejos: hubo cambios después del último cálculo. */}
+      {preciosDesactualizados && (
+        <div className="mb-6 flex items-start gap-3 rounded-lg border border-amber-300/70 bg-amber-50 p-4 dark:bg-amber-950/30">
+          <TriangleAlert className="mt-0.5 size-5 shrink-0 text-amber-600" />
+          <p className="text-sm text-amber-900 dark:text-amber-200">
+            Los precios cambiaron desde tu último cálculo. Recalculá para ver la
+            estimación con los valores actuales.
+          </p>
+        </div>
+      )}
+
       {/* Resumen */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <Card className="shadow-sm md:col-span-1">
