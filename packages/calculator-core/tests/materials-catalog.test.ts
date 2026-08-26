@@ -4,8 +4,8 @@ import { describe, expect, it } from "vitest";
 import { MATERIAL_CATALOG, MATERIAL_CODES } from "@casitacalc/shared";
 
 describe("catálogo maestro de materiales", () => {
-  it("carga las 24 entradas desde el archivo maestro", () => {
-    expect(MATERIAL_CATALOG.length).toBe(24);
+  it("carga las 22 entradas desde el archivo maestro", () => {
+    expect(MATERIAL_CATALOG.length).toBe(22);
   });
 
   it("cada entrada tiene código/nombre/categoría no vacíos y formato de código estable", () => {

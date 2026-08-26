@@ -36,14 +36,14 @@ function fila(overrides: Partial<Record<string, string>> = {}, n = "1"): string 
     overrides.source ?? "MERCADOLIBRE",
     overrides.region ?? "GBA",
     overrides.collected_at ?? "2026-08-22",
-    overrides.material_code ?? "CEMENTO_PORTLAND_50KG",
+    overrides.material_code ?? "CEMENTO_PORTLAND_25KG",
     overrides.external_id ?? `MLA-${n}`,
     overrides.title ?? `Cemento prueba ${n}`,
     overrides.url ?? `https://articulo.mercadolibre.com.ar/MLA${n}`,
     overrides.currency ?? "ARS",
     overrides.raw_price ?? "12500",
     overrides.package_quantity ?? "1",
-    overrides.package_unit ?? "BAG_50KG",
+    overrides.package_unit ?? "BAG_25KG",
     overrides.brand ?? "",
     overrides.seller ?? "",
     overrides.accepted ?? "true",
@@ -62,6 +62,50 @@ async function subirCsv(
   );
 }
 
+// ── Cobertura total: el confirm exige precio para TODO el catálogo de test ──
+
+type OverridesFila = Partial<Record<string, string>>;
+
+function filaLadrillo(n: string, overrides: OverridesFila = {}): string {
+  return fila(
+    {
+      material_code: "LADRILLO_HUECO_12X18X33",
+      title: "Pack 10 ladrillos huecos",
+      raw_price: "12000",
+      package_quantity: "10",
+      package_unit: "UNIT",
+      ...overrides,
+    },
+    n,
+  );
+}
+
+function filaArena(n: string, overrides: OverridesFila = {}): string {
+  return fila(
+    {
+      material_code: "ARENA",
+      title: "Arena m3",
+      raw_price: "28000",
+      package_quantity: "1",
+      package_unit: "M3",
+      ...overrides,
+    },
+    n,
+  );
+}
+
+/** Agrega una fila por cada material del catálogo que `cubiertos` no trae. */
+function filasRestantes(cubiertos: string[], prefijo: string, overrides: OverridesFila = {}): string[] {
+  const faltantes = ["CEMENTO_PORTLAND_25KG", "LADRILLO_HUECO_12X18X33", "ARENA"].filter(
+    (c) => !cubiertos.includes(c),
+  );
+  return faltantes.map((codigo, i) =>
+    codigo === "LADRILLO_HUECO_12X18X33"
+      ? filaLadrillo(`${prefijo}-lad-${i}`, overrides)
+      : filaArena(`${prefijo}-are-${i}`, overrides),
+  );
+}
+
 function reqJson(path: string, body: unknown): Request {
   return new Request(`http://localhost:3000${path}`, {
     method: "POST",
@@ -75,6 +119,15 @@ beforeEach(async () => {
   await prisma.materialReferencePrice.deleteMany();
   await prisma.priceObservation.deleteMany();
   await prisma.priceCollection.deleteMany();
+
+  // Catálogo determinista: fuera materiales heredados de corridas anteriores
+  // (p. ej. LADRILLO_HUECO_18X18X33, previo al rename), para que la cobertura
+  // total que exige el confirm sea exactamente la de este archivo.
+  await prisma.material.deleteMany({
+    where: {
+      codigo: { notIn: ["CEMENTO_PORTLAND_25KG", "LADRILLO_HUECO_12X18X33", "ARENA"] },
+    },
+  });
 
   // La DB de test no corre el seed completo: fuentes mínimas para el importador.
   for (const [code, name] of [
@@ -92,9 +145,9 @@ beforeEach(async () => {
   // Catálogo mínimo para los tests de precios.
   const fecha = new Date("2026-01-01T00:00:00.000Z");
   for (const m of [
-    { codigo: "CEMENTO_PORTLAND_50KG", nombre: "Cemento Portland 50 kg", categoria: "Aglomerantes", unidad: "bolsa", precioDefault: 9500 },
+    { codigo: "CEMENTO_PORTLAND_25KG", nombre: "Cemento Portland 25 kg", categoria: "Aglomerantes", unidad: "bolsa", precioDefault: 9500 },
     { codigo: "LADRILLO_HUECO_12X18X33", nombre: "Ladrillo hueco 12x18x33", categoria: "Mampostería", unidad: "un", precioDefault: 650 },
-    { codigo: "ARENA_GRUESA", nombre: "Arena gruesa", categoria: "Agregados", unidad: "m3", precioDefault: 28000 },
+    { codigo: "ARENA", nombre: "Arena", categoria: "Agregados", unidad: "m3", precioDefault: 28000 },
   ]) {
     await prisma.material.upsert({
       where: { codigo: m.codigo },
@@ -165,14 +218,15 @@ describe("preview e importación", () => {
   });
 
   it("confirma la importación: colección + observaciones + referencias DRAFT", async () => {
-    // 5 filas válidas de cemento (mediana 12500) + 1 de ladrillos pack×10.
+    // 5 filas válidas de cemento (mediana 12500) + ladrillos pack×10 + arena
+    // (cobertura total del catálogo de test).
     const lineas = [
       fila({ raw_price: "12000" }, "10"),
       fila({ raw_price: "12500" }, "11"),
       fila({ raw_price: "12500" }, "12"),
       fila({ raw_price: "13000", external_id: "", url: "https://tienda.com/p/9", title: "Cemento corralón" }, "13"),
       fila({ raw_price: "99999" }, "14"),
-      fila({ material_code: "LADRILLO_HUECO_12X18X33", title: "Pack 10 ladrillos huecos", raw_price: "12000", package_quantity: "10", package_unit: "UNIT" }, "15"),
+      ...filasRestantes(["CEMENTO_PORTLAND_25KG"], "cov"),
     ];
     const res = await subirCsv("precios-2026-08.csv", lineas);
     expect(res.status).toBe(201);
@@ -180,21 +234,20 @@ describe("preview e importación", () => {
 
     const collection = await prisma.priceCollection.findUniqueOrThrow({ where: { id } });
     expect(collection.status).toBe("DRAFT");
-    expect(collection.totalRows).toBe(6);
-    expect(collection.acceptedRows).toBe(6);
+    expect(collection.totalRows).toBe(7);
+    expect(collection.acceptedRows).toBe(7);
     expect(collection.createdBy).toBe("admin@casitacalc.test");
 
     const obs = await prisma.priceObservation.findMany({ where: { collectionId: id } });
-    expect(obs).toHaveLength(6);
-    expect(obs.find((o) => o.title === "Cemento prueba 15")).toBeUndefined(); // esa fila era ladrillos
+    expect(obs).toHaveLength(7);
 
     // Normalización server-side del pack de ladrillos.
     const ladrillos = obs.find((o) => o.normalizedUnit === "un");
     expect(ladrillos?.normalizedUnitPrice.toFixed(2)).toBe("1200.00");
 
     const refs = await prisma.materialReferencePrice.findMany({ where: { collectionId: id } });
-    expect(refs).toHaveLength(2);
-    const cementoId = await materialId("CEMENTO_PORTLAND_50KG");
+    expect(refs).toHaveLength(3);
+    const cementoId = await materialId("CEMENTO_PORTLAND_25KG");
     const refCemento = refs.find((r) => r.materialId === cementoId);
     expect(refCemento?.price.toFixed(2)).toBe("12500.00"); // mediana, no promedio
     expect(refCemento?.sampleSize).toBe(5);
@@ -205,17 +258,34 @@ describe("preview e importación", () => {
     const refLadrillo = refs.find((r) => r.materialId === ladrilloId);
     expect(refLadrillo?.sampleSize).toBe(1);
     expect(refLadrillo?.insufficientSample).toBe(true); // menos de 5 muestras
+
+    const arenaId = await materialId("ARENA");
+    const refArena = refs.find((r) => r.materialId === arenaId);
+    expect(refArena?.price.toFixed(2)).toBe("28000.00");
+    expect(refArena?.insufficientSample).toBe(true);
+  });
+
+  it("rechaza un import parcial que no cubre todo el catálogo (INCOMPLETE_COVERAGE)", async () => {
+    const res = await subirCsv("parcial.csv", [fila({}, "100")]);
+    expect(res.status).toBe(422);
+    const data = await res.json();
+    expect(data.code).toBe("INCOMPLETE_COVERAGE");
+    expect(data.error).toContain("LADRILLO_HUECO_12X18X33");
+    expect(data.error).toContain("ARENA");
+    expect(await prisma.priceObservation.count()).toBe(0);
+    expect(await prisma.priceCollection.count()).toBe(0);
   });
 
   it("no inserta duplicados silenciosos entre archivos", async () => {
-    const primera = await subirCsv("a.csv", [fila({}, "100")]);
+    const lineas = [fila({}, "100"), ...filasRestantes(["CEMENTO_PORTLAND_25KG"], "dup")];
+    const primera = await subirCsv("a.csv", lineas);
     expect(primera.status).toBe(201);
     // Mismo externalId + misma fecha → DUPLICATE_IN_DB → nada válido que importar.
-    const segunda = await subirCsv("b.csv", [fila({}, "100")]);
+    const segunda = await subirCsv("b.csv", lineas);
     expect(segunda.status).toBe(422);
     const data = await segunda.json();
     expect(data.code).toBe("NO_VALID_ROWS");
-    expect(await prisma.priceObservation.count()).toBe(1);
+    expect(await prisma.priceObservation.count()).toBe(3);
   });
 
   it("rechaza archivos que mezclan regiones", async () => {
@@ -251,22 +321,13 @@ describe("umbral de inflación en el importador", () => {
     expect(pub.status).toBe(200);
   }
 
-  /** CSV nuevo: 5 cementos (mediana 13000, supera umbral) + 1 ladrillo (sin historial). */
+  /** CSV nuevo: 5 cementos (mediana 13000, supera umbral) + ladrillo y arena con precio igual al baseline. */
   function csvContraBaseline(): string[] {
     return [
       ...[12800, 12900, 13000, 13100, 13200].map((p, i) =>
         fila({ raw_price: String(p) }, `nuevo-${i}`),
       ),
-      fila(
-        {
-          material_code: "LADRILLO_HUECO_12X18X33",
-          title: "Ladrillo hueco unidad",
-          raw_price: "3000",
-          package_quantity: "1",
-          package_unit: "UNIT",
-        },
-        "nuevo-lad",
-      ),
+      ...filasRestantes(["CEMENTO_PORTLAND_25KG"], "nuevo"),
     ];
   }
 
@@ -280,15 +341,17 @@ describe("umbral de inflación en el importador", () => {
     const porCodigo = Object.fromEntries(
       data.proposals.map((p: { materialCode: string }) => [p.materialCode, p]),
     );
-    expect(porCodigo.CEMENTO_PORTLAND_50KG.exceedsInflation).toBe(true);
-    expect(porCodigo.CEMENTO_PORTLAND_50KG.previousPrice).toBe(12500);
+    expect(porCodigo.CEMENTO_PORTLAND_25KG.exceedsInflation).toBe(true);
+    expect(porCodigo.CEMENTO_PORTLAND_25KG.previousPrice).toBe(12500);
     expect(porCodigo.LADRILLO_HUECO_12X18X33.exceedsInflation).toBe(false);
-    expect(porCodigo.LADRILLO_HUECO_12X18X33.previousPrice).toBeNull();
-    expect(data.warnings).toContain("EXCEEDS_INFLATION:CEMENTO_PORTLAND_50KG");
+    expect(porCodigo.LADRILLO_HUECO_12X18X33.previousPrice).toBe(1200);
+    expect(porCodigo.ARENA.exceedsInflation).toBe(false);
+    expect(porCodigo.ARENA.previousPrice).toBe(28000);
+    expect(data.warnings).toContain("EXCEEDS_INFLATION:CEMENTO_PORTLAND_25KG");
 
-    // Conteo para los botones: ladrillo importable, cemento requiere force.
-    expect(data.validRows).toBe(6);
-    expect(data.importableRows).toBe(1);
+    // Conteo para los botones: ladrillo y arena importables, cemento requiere force.
+    expect(data.validRows).toBe(7);
+    expect(data.importableRows).toBe(2);
     expect(data.flaggedRows).toBe(5);
   });
 
@@ -303,26 +366,18 @@ describe("umbral de inflación en el importador", () => {
     expect(filaCemento?.url).toBe("https://articulo.mercadolibre.com.ar/MLAnuevo-0");
   });
 
-  it("el confirm sin forceAll deja fuera los materiales marcados", async () => {
+  it("el confirm sin forceAll rechaza: el material marcado dejaría la cobertura incompleta", async () => {
     await publicarBaseline();
     const content = [HEADER, ...csvContraBaseline()].join("\n");
     const res = await confirmPOST(
       reqJson("/confirm", { filename: "suba.csv", content, forceAll: false }),
     );
-    expect(res.status).toBe(201);
-    const { id } = await res.json();
-
-    const obs = await prisma.priceObservation.findMany({ where: { collectionId: id } });
-    expect(obs).toHaveLength(1);
-    expect(obs[0]?.title).toBe("Ladrillo hueco unidad");
-
-    const refs = await prisma.materialReferencePrice.findMany({ where: { collectionId: id } });
-    expect(refs).toHaveLength(1);
-    const ladrilloId = await materialId("LADRILLO_HUECO_12X18X33");
-    expect(refs[0]?.materialId).toBe(ladrilloId);
-
-    const collection = await prisma.priceCollection.findUniqueOrThrow({ where: { id } });
-    expect(collection.acceptedRows).toBe(1);
+    expect(res.status).toBe(422);
+    const data = await res.json();
+    expect(data.code).toBe("INCOMPLETE_COVERAGE");
+    expect(data.error).toContain("CEMENTO_PORTLAND_25KG");
+    // Solo persiste el baseline: nada del archivo rechazado.
+    expect(await prisma.priceCollection.count()).toBe(1);
   });
 
   it("el confirm con forceAll importa también los marcados", async () => {
@@ -335,10 +390,10 @@ describe("umbral de inflación en el importador", () => {
     const { id } = await res.json();
 
     const obs = await prisma.priceObservation.findMany({ where: { collectionId: id } });
-    expect(obs).toHaveLength(6);
+    expect(obs).toHaveLength(7);
 
     const refs = await prisma.materialReferencePrice.findMany({ where: { collectionId: id } });
-    expect(refs).toHaveLength(2);
+    expect(refs).toHaveLength(3);
   });
 
   it("sin forceAll y con todo marcado no importa nada (NO_VALID_ROWS)", async () => {
@@ -376,7 +431,7 @@ describe("publicación y consumo del precio", () => {
     expect(collection.status).toBe("PUBLISHED");
 
     const vigentes = await getPublishedPrices("GBA");
-    const cemento = vigentes.get("CEMENTO_PORTLAND_50KG");
+    const cemento = vigentes.get("CEMENTO_PORTLAND_25KG");
     expect(cemento?.precio).toBe(12500);
     expect(cemento?.region).toBe("GBA");
 
@@ -400,7 +455,10 @@ describe("publicación y consumo del precio", () => {
 
     try {
       // Recetas mínimas: la DB de test no corre el seed completo.
+      // Se recrean desde DEFAULT_RECIPES para no arrastrar recetas de corridas
+      // anteriores con códigos de material viejos (p. ej. CEMENTO_PORTLAND_50KG).
       const { DEFAULT_RECIPES } = await import("@casitacalc/calculator-core");
+      await prisma.recipe.deleteMany();
       for (const recipe of DEFAULT_RECIPES) {
         const existing = await prisma.recipe.findUnique({ where: { codigo: recipe.codigo } });
         if (existing) continue;
@@ -411,7 +469,7 @@ describe("publicación y consumo del precio", () => {
             sistemaConstructivo: recipe.sistemaConstructivo ?? null,
             tipoTecho: recipe.tipoTecho ?? null,
             items: {
-              create: [{ codigoMaterial: "CEMENTO_PORTLAND_50KG", cantidadPorUnidad: 0.1, desperdicioPct: 5 }],
+              create: [{ codigoMaterial: "CEMENTO_PORTLAND_25KG", cantidadPorUnidad: 0.1, desperdicioPct: 5 }],
             },
           },
         });
@@ -421,7 +479,7 @@ describe("publicación y consumo del precio", () => {
       const { calculateAndSaveResult, getLatestResult } = await import("@casitacalc/db");
       await calculateAndSaveResult(project.id);
       let latest = await getLatestResult(project.id);
-      const cementoAntes = latest?.items.find((i) => i.codigoMaterial === "CEMENTO_PORTLAND_50KG");
+      const cementoAntes = latest?.items.find((i) => i.codigoMaterial === "CEMENTO_PORTLAND_25KG");
       expect(Number(cementoAntes?.precioUnitario)).toBe(9500);
       expect(cementoAntes?.regionPrecio ?? null).toBeNull();
 
@@ -431,7 +489,7 @@ describe("publicación y consumo del precio", () => {
 
       await calculateAndSaveResult(project.id);
       latest = await getLatestResult(project.id);
-      const cementoDespues = latest?.items.find((i) => i.codigoMaterial === "CEMENTO_PORTLAND_50KG");
+      const cementoDespues = latest?.items.find((i) => i.codigoMaterial === "CEMENTO_PORTLAND_25KG");
       expect(Number(cementoDespues?.precioUnitario)).toBe(12500);
       expect(cementoDespues?.regionPrecio).toBe("GBA");
       expect(cementoDespues?.fuentePrecio).toBe("Mercado Libre");
@@ -462,7 +520,7 @@ describe("publicación y consumo del precio", () => {
     });
     await publishPOST(new Request("http://localhost/pub"), await params({ id: coleccion2.id }));
 
-    const historia = await getMaterialPriceHistory("CEMENTO_PORTLAND_50KG", "GBA");
+    const historia = await getMaterialPriceHistory("CEMENTO_PORTLAND_25KG", "GBA");
     const publicadas = historia.filter((h) => h.status === "PUBLISHED");
     expect(publicadas).toHaveLength(2);
     expect(publicadas[0]?.precio).toBe(11000);
@@ -484,7 +542,7 @@ describe("exclusión de observaciones y recálculo", () => {
     expect(exRes.status).toBe(200);
 
     const ref = await prisma.materialReferencePrice.findFirstOrThrow({
-      where: { collectionId: id, material: { codigo: "CEMENTO_PORTLAND_50KG" } },
+      where: { collectionId: id, material: { codigo: "CEMENTO_PORTLAND_25KG" } },
     });
     expect(ref.sampleSize).toBe(4);
     expect(ref.price.toFixed(2)).toBe("12500.00"); // mediana(12000,12500,12500,13000)
@@ -503,7 +561,7 @@ describe("exclusión de observaciones y recálculo", () => {
     const res = await recalcPOST(new Request("http://localhost/r"), await params({ id }));
     expect(res.status).toBe(200);
     const ref = await prisma.materialReferencePrice.findFirstOrThrow({
-      where: { collectionId: id, material: { codigo: "CEMENTO_PORTLAND_50KG" } },
+      where: { collectionId: id, material: { codigo: "CEMENTO_PORTLAND_25KG" } },
     });
     expect(ref.price.toFixed(2)).toBe("12500.00");
     expect(ref.sampleSize).toBe(5);
@@ -527,15 +585,18 @@ async function materialId(codigo: string): Promise<string> {
   return m.id;
 }
 
-/** Importa 5 observaciones de cemento; la mediana queda determinada por `precios`. */
+/** Importa cemento + el resto del catálogo de test; la mediana de cemento la fija `precios`. */
 async function importarColeccionConCemento(
   fecha = "2026-08-22",
   precios: number[] = [12000, 12500, 12500, 13000, 99999], // mediana 12500
   forceAll = false,
 ): Promise<{ id: string }> {
-  const lineas = precios.map((p, i) =>
-    fila({ collected_at: fecha, raw_price: String(p) }, `c-${fecha}-${i}`),
-  );
+  const lineas = [
+    ...precios.map((p, i) =>
+      fila({ collected_at: fecha, raw_price: String(p) }, `c-${fecha}-${i}`),
+    ),
+    ...filasRestantes(["CEMENTO_PORTLAND_25KG"], `base-${fecha}`, { collected_at: fecha }),
+  ];
   const res = await subirCsv(`precios-${fecha}.csv`, lineas, forceAll);
   if (res.status !== 201) throw new Error(`import falló: ${res.status}`);
   return res.json();

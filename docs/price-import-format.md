@@ -156,6 +156,10 @@ Funciones reutilizables (sin dependencia de la UI):
 
 - `previewPriceImport({ filename, content })` — valida y devuelve preview.
 - `confirmPriceImport({ filename, content, createdBy })` — importa tras validar.
+  Exige **cobertura total**: si el archivo no trae al menos una fila válida para
+  cada material del catálogo, rechaza con `INCOMPLETE_COVERAGE` listando los
+  faltantes. No existen imports parciales: una colección publicada deja precios
+  vigentes para todo el catálogo o no se importa.
 
 ## Seguridad
 

@@ -79,7 +79,7 @@ describe("calculateMaterials — baños", () => {
   it("un baño multiplica el paquete por 1", () => {
     const inodoro = item("INODORO_COMPLETO");
     expect(inodoro.cantidadFinal).toBe(1);
-    expect(item("PEGAMENTO_CERAMICO_30KG").cantidadFinal).toBe(5); // 4*1*1.05
+    expect(item("PEGAMENTO_CERAMICO_25KG").cantidadFinal).toBe(5); // 4*1*1.05
   });
 
   it("dos baños duplican el paquete", () => {
@@ -104,9 +104,9 @@ describe("calculateMaterials — errores", () => {
 
   it("falla si el catálogo no conoce un material de la receta", () => {
     const catalogoIncompleto = { ...DEFAULT_MATERIAL_CATALOG };
-    delete (catalogoIncompleto as Partial<typeof catalogoIncompleto>).ARENA_GRUESA;
+    delete (catalogoIncompleto as Partial<typeof catalogoIncompleto>).ARENA;
     expect(() =>
       calculateHouse(baseInput(), { catalog: catalogoIncompleto }),
-    ).toThrow(/ARENA_GRUESA/);
+    ).toThrow(/ARENA/);
   });
 });

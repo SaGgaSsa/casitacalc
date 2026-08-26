@@ -81,6 +81,7 @@ export class PriceImportError extends Error {
       | "MISSING_HEADER"
       | "MIXED_REGIONS"
       | "NO_VALID_ROWS"
+      | "INCOMPLETE_COVERAGE"
       | "NOT_FOUND"
       | "INVALID_STATE",
   ) {
@@ -339,6 +340,18 @@ export async function confirmPriceImport(input: {
     throw new PriceImportError(
       "Todos los materiales superan el umbral de inflación; repetí la operación forzando la importación",
       "NO_VALID_ROWS",
+    );
+  }
+
+  // Cobertura total: la colección debe traer precio para TODO el catálogo.
+  // Un import parcial dejaría materiales con precios desactualizados.
+  const catalogCodes = [...validated.materialIdsByCode.keys()].sort();
+  const importedCodes = new Set(accepted.map((a) => a.dto.materialCode));
+  const missing = catalogCodes.filter((c) => !importedCodes.has(c));
+  if (missing.length > 0) {
+    throw new PriceImportError(
+      `El archivo no cubre todo el catálogo: faltan ${missing.length} de ${catalogCodes.length} materiales (${missing.join(", ")})`,
+      "INCOMPLETE_COVERAGE",
     );
   }
 
