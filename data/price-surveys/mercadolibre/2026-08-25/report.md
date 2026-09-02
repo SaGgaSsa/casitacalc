@@ -243,14 +243,15 @@ indicadas explícitamente por el usuario y quedan asentadas en cada sección.
 
 ## PASTINA — Pastina
 
-- Sin cambios respecto de la primera pasada (sin observación del usuario).
-- "Repara Pastina En Pomo Sinteplast | Color Gris I 420 Gr" — $11.495 —
-  Peso declarado 420 g → `0.42 / KG` (≈$27.369/kg).
-  https://www.mercadolibre.com.ar/p/MLA66799576
-- ⚠️ Warning fuerte persistente: pastina acrílica de reparación en pomo chico,
-  no pastina cementicia en bolsa; el precio/kg resultará outlier. Sujeta a
-  descarte en el preview del importador.
-- Estado: ✅ fila emitida con warning asentado.
+- **Corrección 2026-09-02 (dato aportado por el usuario):** se reemplaza el pomo
+  de reparación 420 g (outlier $27.369/kg) por pastina acrílica lista para usar
+  Sinteplast blanco 1,25 kg a **$16.335,25** → ≈$13.068/kg (normaliza el
+  importador como `16335.25 / 1.25`).
+  https://www.mercadolibre.com.ar/sinteplast-pastina-acrilica-lista-para-usar-color-blanco-125-kg/p/MLA23868093
+- Fila del CSV actualizada en el lugar (misma corrida 2026-08-25); al importar
+  y publicar hay que **recalcular los proyectos** (los resultados guardados son
+  inmutables y conservan el precio viejo).
+- Estado: ✅ fila emitida con dato de usuario.
 
 ---
 
