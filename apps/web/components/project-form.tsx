@@ -206,7 +206,7 @@ export function ProjectForm({ defaultValues, submitLabel, onSubmit }: ProjectFor
               Aberturas
             </h3>
             <p className="text-sm text-muted-foreground">
-              Se descuentan del área de muro para el cálculo.
+              No reducen la mampostería: se usan para estimar tus puertas y ventanas.
             </p>
           </div>
           <Button

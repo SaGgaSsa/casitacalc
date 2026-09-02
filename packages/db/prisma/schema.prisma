@@ -89,6 +89,8 @@ model Recipe {
   rubro               String
   sistemaConstructivo String?
   tipoTecho           String?
+  /// Solo rubro Aberturas: PUERTA o VENTANA.
+  tipoAbertura        String?
 
   items RecipeItem[]
 }

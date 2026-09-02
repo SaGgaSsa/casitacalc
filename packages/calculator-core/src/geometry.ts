@@ -8,10 +8,15 @@ export interface HouseGeometry {
   perimetroM: number;
   /** perimetro * alturaParedes. */
   areaParedesBrutaM2: number;
+  /** Suma de las aberturas cargadas (informativa + base del rubro Aberturas). */
   areaAberturasM2: number;
-  /** bruta − aberturas (nunca negativa). */
-  areaParedesNetaM2: number;
-  /** CHAPA: planta / cos(ángulo). LOSA: planta. */
+  /**
+   * Base computable de mampostería y revoques = área bruta.
+   * Decisión de proyecto: las aberturas NO reducen los materiales de muro
+   * (el excedente absorbe cortes, roturas y encuentros).
+   */
+  areaMuroComputableM2: number;
+  /** CHAPA: planta / cos(ángulo). LOSA: planta. Sin aleros. */
   superficieTechoM2: number;
 }
 
@@ -29,7 +34,7 @@ export function computeGeometry(input: HouseInput): HouseGeometry {
     0,
   );
 
-  const areaParedesNetaM2 = Math.max(0, areaParedesBrutaM2 - areaAberturasM2);
+  const areaMuroComputableM2 = areaParedesBrutaM2;
 
   let superficieTechoM2 = superficiePlantaM2;
   if (input.tipoTecho === RoofType.CHAPA) {
@@ -42,7 +47,7 @@ export function computeGeometry(input: HouseInput): HouseGeometry {
     perimetroM,
     areaParedesBrutaM2,
     areaAberturasM2,
-    areaParedesNetaM2,
+    areaMuroComputableM2,
     superficieTechoM2,
   };
 }

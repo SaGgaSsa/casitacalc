@@ -151,7 +151,7 @@ export default async function ProjectDetailPage({
                 {formatMoney(result.totalGeneral)}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Estimación de costo de materiales.
+                Estimación del costo de los materiales calculados.
               </p>
             </CardContent>
           </Card>

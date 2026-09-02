@@ -25,7 +25,12 @@ export default async function AdminRecipesPage() {
     detalle: [
       r.sistemaConstructivo?.replace(/_/g, " ").toLowerCase(),
       r.tipoTecho ? `techo ${r.tipoTecho.toLowerCase()}` : null,
-      r.sistemaConstructivo === undefined && r.tipoTecho === undefined ? "paquete por baño" : null,
+      r.tipoAbertura ? `abertura ${r.tipoAbertura.toLowerCase()}` : null,
+      r.sistemaConstructivo === undefined &&
+      r.tipoTecho === undefined &&
+      r.tipoAbertura === undefined
+        ? r.rubro.toLowerCase()
+        : null,
     ]
       .filter(Boolean)
       .join(" · "),

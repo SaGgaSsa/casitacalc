@@ -1,6 +1,7 @@
 import {
   ConstructionSystem,
   MATERIAL_CATALOG,
+  OpeningType,
   RoofType,
   Rubro,
   Unit,
@@ -77,10 +78,71 @@ export const DEFAULT_RECIPES: Recipe[] = [
       { codigoMaterial: "CANO_PVC_20_3M", cantidadPorUnidad: 2, desperdicioPct: D.BAJO },
       { codigoMaterial: "DESAGUE_PISO", cantidadPorUnidad: 1, desperdicioPct: D.NINGUNO },
       { codigoMaterial: "SIFON_LAVATORIO", cantidadPorUnidad: 1, desperdicioPct: D.NINGUNO },
+      // Superficie estándar de piso por baño (6 m²). Fuente única de verdad:
+      // el rubro Pisos la lee de acá para no duplicar la constante.
       { codigoMaterial: "CERAMICA_PISO", cantidadPorUnidad: 6, desperdicioPct: D.MEDIO },
       { codigoMaterial: "CERAMICA_PARED", cantidadPorUnidad: 14, desperdicioPct: D.MEDIO },
       { codigoMaterial: "PEGAMENTO_CERAMICO_25KG", cantidadPorUnidad: 4, desperdicioPct: D.BAJO },
       { codigoMaterial: "PASTINA", cantidadPorUnidad: 3, desperdicioPct: D.BAJO },
+    ],
+  },
+  // ── Revoques: una receta por cara, base = 1 m² de muro computable ──────────
+  // Solo caras de muros perimetrales (no hay tabiques interiores todavía).
+  // Coeficientes referenciales (≈2 cm de mortero por cara); validar en obra.
+  {
+    codigo: "REVOQUE_EXTERIOR",
+    rubro: Rubro.REVOQUES,
+    items: [
+      { codigoMaterial: "CEMENTO_PORTLAND_25KG", cantidadPorUnidad: 0.15, desperdicioPct: D.BAJO },
+      { codigoMaterial: "CAL_HIDRATADA_25KG", cantidadPorUnidad: 0.08, desperdicioPct: D.BAJO },
+      { codigoMaterial: "ARENA", cantidadPorUnidad: 0.022, desperdicioPct: D.MEDIO },
+    ],
+  },
+  {
+    codigo: "REVOQUE_INTERIOR",
+    rubro: Rubro.REVOQUES,
+    items: [
+      { codigoMaterial: "CEMENTO_PORTLAND_25KG", cantidadPorUnidad: 0.1, desperdicioPct: D.BAJO },
+      { codigoMaterial: "CAL_HIDRATADA_25KG", cantidadPorUnidad: 0.12, desperdicioPct: D.BAJO },
+      { codigoMaterial: "ARENA", cantidadPorUnidad: 0.018, desperdicioPct: D.MEDIO },
+    ],
+  },
+  // ── Contrapiso: hormigón pobre de 10 cm (0.1 m³/m²), base = planta ─────────
+  {
+    codigo: "CONTRAPISO_HORMIGON_10CM",
+    rubro: Rubro.CONTRAPISO,
+    items: [
+      { codigoMaterial: "CEMENTO_PORTLAND_25KG", cantidadPorUnidad: 0.8, desperdicioPct: D.BAJO },
+      { codigoMaterial: "ARENA", cantidadPorUnidad: 0.06, desperdicioPct: D.MEDIO },
+      { codigoMaterial: "PIEDRA_BOLA", cantidadPorUnidad: 0.08, desperdicioPct: D.MEDIO },
+    ],
+  },
+  // ── Pisos generales: base = planta menos baños (ver calculator.ts) ─────────
+  // Adhesivo ≈ 5 m² por bolsa; pastina 0.15 kg/m². Referenciales.
+  {
+    codigo: "PISO_GENERAL",
+    rubro: Rubro.PISOS,
+    items: [
+      { codigoMaterial: "CERAMICA_PISO", cantidadPorUnidad: 1, desperdicioPct: D.MEDIO },
+      { codigoMaterial: "PEGAMENTO_CERAMICO_25KG", cantidadPorUnidad: 0.2, desperdicioPct: D.BAJO },
+      { codigoMaterial: "PASTINA", cantidadPorUnidad: 0.15, desperdicioPct: D.BAJO },
+    ],
+  },
+  // ── Aberturas: 1 unidad por abertura del tipo; dimensiones desde el input ──
+  {
+    codigo: "ABERTURA_PUERTA",
+    rubro: Rubro.ABERTURAS,
+    tipoAbertura: OpeningType.PUERTA,
+    items: [
+      { codigoMaterial: "PUERTA_ESTANDAR", cantidadPorUnidad: 1, desperdicioPct: D.NINGUNO },
+    ],
+  },
+  {
+    codigo: "ABERTURA_VENTANA",
+    rubro: Rubro.ABERTURAS,
+    tipoAbertura: OpeningType.VENTANA,
+    items: [
+      { codigoMaterial: "VENTANA_ESTANDAR", cantidadPorUnidad: 1, desperdicioPct: D.NINGUNO },
     ],
   },
 ];

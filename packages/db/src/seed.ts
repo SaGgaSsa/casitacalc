@@ -34,6 +34,11 @@ const PRECIOS_REFERENCIA: Record<string, number> = {
   CERAMICA_PARED: 11800,
   PEGAMENTO_CERAMICO_25KG: 16500,
   PASTINA: 3500,
+  // Precios genéricos de referencia para el MVP de Aberturas: el rubro hoy
+  // estima cantidades por tipo y medida; el relevamiento de productos
+  // comerciales específicos (aluminio/PVC/madera, DVH) llega después.
+  PUERTA_ESTANDAR: 180000,
+  VENTANA_ESTANDAR: 350000,
 };
 
 async function seedMaterials() {
@@ -93,6 +98,10 @@ function rubroCanonico(rubroLabel: string): string {
   if (rubroLabel === Rubro.MAMPOSTERIA) return Rubro.MAMPOSTERIA;
   if (rubroLabel === Rubro.TECHO) return Rubro.TECHO;
   if (rubroLabel === Rubro.BANOS) return Rubro.BANOS;
+  if (rubroLabel === Rubro.REVOQUES) return Rubro.REVOQUES;
+  if (rubroLabel === Rubro.CONTRAPISO) return Rubro.CONTRAPISO;
+  if (rubroLabel === Rubro.PISOS) return Rubro.PISOS;
+  if (rubroLabel === Rubro.ABERTURAS) return Rubro.ABERTURAS;
   throw new Error(`Rubro desconocido: ${rubroLabel}`);
 }
 
@@ -119,6 +128,7 @@ async function seedRecipes() {
         rubro: rubroCanonico(recipe.rubro),
         sistemaConstructivo: recipe.sistemaConstructivo ?? null,
         tipoTecho: recipe.tipoTecho ?? null,
+        tipoAbertura: recipe.tipoAbertura ?? null,
         items: { create: items },
       },
       update: tieneItemsObsoletos
@@ -126,6 +136,7 @@ async function seedRecipes() {
             rubro: rubroCanonico(recipe.rubro),
             sistemaConstructivo: recipe.sistemaConstructivo ?? null,
             tipoTecho: recipe.tipoTecho ?? null,
+            tipoAbertura: recipe.tipoAbertura ?? null,
             items: { deleteMany: {}, create: items },
           }
         : {},

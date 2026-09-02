@@ -20,5 +20,7 @@
   { "codigo": "CERAMICA_PISO", "nombre": "Cerámica de piso", "categoria": "Revestimientos", "unidad": "m2" },
   { "codigo": "CERAMICA_PARED", "nombre": "Cerámica de pared", "categoria": "Revestimientos", "unidad": "m2" },
   { "codigo": "PEGAMENTO_CERAMICO_25KG", "nombre": "Pegamento cerámico 25 kg", "categoria": "Adhesivos", "unidad": "bolsa" },
-  { "codigo": "PASTINA", "nombre": "Pastina", "categoria": "Adhesivos", "unidad": "kg" }
+  { "codigo": "PASTINA", "nombre": "Pastina", "categoria": "Adhesivos", "unidad": "kg" },
+  { "codigo": "PUERTA_ESTANDAR", "nombre": "Puerta estándar colocada", "categoria": "Aberturas", "unidad": "un" },
+  { "codigo": "VENTANA_ESTANDAR", "nombre": "Ventana estándar colocada", "categoria": "Aberturas", "unidad": "un" }
 ]

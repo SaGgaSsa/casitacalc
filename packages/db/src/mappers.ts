@@ -77,6 +77,7 @@ type RecipeRow = {
   rubro: string;
   sistemaConstructivo: string | null;
   tipoTecho: string | null;
+  tipoAbertura: string | null;
   items: {
     codigoMaterial: string;
     cantidadPorUnidad: Prisma.Decimal;
@@ -91,6 +92,7 @@ export function recipeToDomain(r: RecipeRow): Recipe {
     sistemaConstructivo:
       (r.sistemaConstructivo as Recipe["sistemaConstructivo"]) ?? undefined,
     tipoTecho: (r.tipoTecho as Recipe["tipoTecho"]) ?? undefined,
+    tipoAbertura: (r.tipoAbertura as Recipe["tipoAbertura"]) ?? undefined,
     items: r.items.map((i) => ({
       codigoMaterial: i.codigoMaterial,
       cantidadPorUnidad: toNum(i.cantidadPorUnidad),

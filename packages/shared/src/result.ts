@@ -36,7 +36,8 @@ export const CalculationResultSchema = z.object({
     perimetroM: z.number(),
     areaParedesBrutaM2: z.number(),
     areaAberturasM2: z.number(),
-    areaParedesNetaM2: z.number(),
+    /** Base de mampostería y revoques = área bruta (las aberturas no descuentan). */
+    areaMuroComputableM2: z.number(),
     superficieTechoM2: z.number(),
   }),
 });

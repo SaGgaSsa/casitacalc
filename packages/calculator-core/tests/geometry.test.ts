@@ -26,7 +26,7 @@ describe("computeGeometry", () => {
     expect(geo.areaParedesBrutaM2).toBeCloseTo(36 * 2.7);
   });
 
-  it("resta las aberturas del área de muros", () => {
+  it("registra el área de aberturas pero no la descuenta del muro computable", () => {
     const input = baseInput({
       aberturas: [
         { tipo: "PUERTA", anchoM: 0.9, altoM: 2.0, cantidad: 1 }, // 1.8
@@ -35,17 +35,18 @@ describe("computeGeometry", () => {
     });
     const geo = computeGeometry(input);
     expect(geo.areaAberturasM2).toBeCloseTo(7.08);
-    expect(geo.areaParedesNetaM2).toBeCloseTo(97.2 - 7.08);
+    // Decisión de proyecto: las aberturas no reducen la mampostería.
+    expect(geo.areaMuroComputableM2).toBeCloseTo(97.2);
   });
 
-  it("nunca devuelve un área de muro negativa", () => {
+  it("el muro computable es el área bruta aunque las aberturas la superen", () => {
     const input = baseInput({
       anchoM: 3,
       largoM: 3,
       alturaParedesM: 2.4,
       aberturas: [{ tipo: "PUERTA", anchoM: 2.5, altoM: 2.2, cantidad: 8 }],
     });
-    expect(computeGeometry(input).areaParedesNetaM2).toBe(0);
+    expect(computeGeometry(input).areaMuroComputableM2).toBeCloseTo(28.8);
   });
 
   it("para techo de chapa divide la planta por cos(ángulo)", () => {

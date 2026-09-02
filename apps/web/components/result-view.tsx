@@ -17,7 +17,15 @@ import type { CalculationResult } from "@casitacalc/shared";
 import { Rubro } from "@casitacalc/shared";
 import { formatMoney, formatQty } from "@/lib/format";
 
-const ORDEN_RUBROS: string[] = [Rubro.MAMPOSTERIA, Rubro.TECHO, Rubro.BANOS];
+const ORDEN_RUBROS: string[] = [
+  Rubro.MAMPOSTERIA,
+  Rubro.REVOQUES,
+  Rubro.CONTRAPISO,
+  Rubro.PISOS,
+  Rubro.TECHO,
+  Rubro.ABERTURAS,
+  Rubro.BANOS,
+];
 
 /**
  * Vista de solo lectura del cómputo de materiales.
@@ -41,6 +49,13 @@ export function ResultView({
       return acc;
     }, {});
 
+  // Rubros efectivamente incluidos: se derivan de los ítems, no se hardcodean.
+  const rubrosIncluidos = Object.keys(rubros);
+  // Compatibilidad con resultados guardados antes del área computable (= bruta).
+  const muroComputable =
+    (result.geometria as { areaMuroComputableM2?: number }).areaMuroComputableM2 ??
+    result.geometria.areaParedesBrutaM2;
+
   return (
     <>
       {/* Aviso de precios viejos: hubo cambios después del último cálculo. */}
@@ -59,7 +74,7 @@ export function ResultView({
         <Card className="shadow-sm md:col-span-1">
           <CardHeader>
             <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Costo total de materiales
+              Costo estimado de los materiales calculados
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -74,6 +89,9 @@ export function ResultView({
                 </li>
               ))}
             </ul>
+            <p className="mt-3 border-t border-border pt-2 text-xs text-muted-foreground">
+              Incluye: {rubrosIncluidos.join(" · ")}.
+            </p>
           </CardContent>
         </Card>
 
@@ -88,8 +106,8 @@ export function ResultView({
             <Dato etiqueta="Perímetro" valor={`${formatQty(result.geometria.perimetroM)} m`} />
             <Dato etiqueta="Superficie techo" valor={`${formatQty(result.geometria.superficieTechoM2)} m²`} />
             <Dato etiqueta="Muros bruta" valor={`${formatQty(result.geometria.areaParedesBrutaM2)} m²`} />
-            <Dato etiqueta="Aberturas" valor={`− ${formatQty(result.geometria.areaAberturasM2)} m²`} />
-            <Dato etiqueta="Muro neto" valor={`${formatQty(result.geometria.areaParedesNetaM2)} m²`} />
+            <Dato etiqueta="Aberturas" valor={`${formatQty(result.geometria.areaAberturasM2)} m²`} />
+            <Dato etiqueta="Muro computable" valor={`${formatQty(muroComputable)} m²`} />
           </CardContent>
         </Card>
       </div>
@@ -100,6 +118,11 @@ export function ResultView({
           <header className="flex items-center justify-between border-b border-border bg-muted/40 px-6 py-3">
             <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-foreground">
               {rubro}
+              {rubro === Rubro.BANOS && (
+                <span className="ml-2 font-sans text-xs font-normal normal-case tracking-normal text-muted-foreground">
+                  Estimación estándar por baño
+                </span>
+              )}
             </h2>
             {result.subtotalesPorRubro[rubro] !== undefined && (
               <span className="font-mono text-sm text-muted-foreground">
@@ -119,7 +142,7 @@ export function ResultView({
             </TableHeader>
             <TableBody>
               {items.map((item) => (
-                <TableRow key={item.codigoMaterial}>
+                <TableRow key={`${item.rubro}|${item.codigoMaterial}|${item.nombreMaterial}`}>
                   <TableCell className="font-medium">{item.nombreMaterial}</TableCell>
                   <TableCell className="text-right font-mono text-sm">
                     {formatQty(item.cantidadFinal)}{" "}
@@ -140,6 +163,21 @@ export function ResultView({
           </Table>
         </section>
       ))}
+
+      {/* Alcance del cálculo */}
+      <div className="mt-6 flex items-start gap-3 rounded-lg border border-border bg-muted/40 p-4">
+        <TriangleAlert className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
+        <div className="text-sm text-muted-foreground">
+          <p className="font-medium text-foreground">Alcance de esta estimación</p>
+          <ul className="mt-1 list-disc space-y-0.5 pl-5">
+            <li>Mampostería y revoques sobre muros perimetrales (sin tabiques interiores).</li>
+            <li>Las aberturas no reducen la mampostería; se cotizan en el rubro Aberturas.</li>
+            <li>El baño es un paquete estándar, no surge de sus dimensiones.</li>
+            <li>El techo no modela aleros, cumbrera ni babetas.</li>
+            <li>Todavía fuera de cálculo: fundaciones, estructura, instalación eléctrica y sanitaria general, pintura y cocina.</li>
+          </ul>
+        </div>
+      </div>
 
       {/* Advertencia */}
       <div className="mt-6 flex items-start gap-3 rounded-lg border border-amber-300/70 bg-amber-50 p-4 dark:bg-amber-950/30">
