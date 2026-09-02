@@ -8,6 +8,8 @@ export const CalculationResultItemSchema = z.object({
   nombreMaterial: z.string(),
   /** Rubro al que pertenece: Mampostería, Techo, Baños... */
   rubro: z.string(),
+  /** Código de la receta que generó el ítem (ej: REVOQUE_INTERIOR). */
+  recetaCodigo: z.string().optional(),
   /** Cantidad neta calculada sin desperdicio. */
   cantidad: z.number().nonnegative(),
   unidad: UnitEnum,

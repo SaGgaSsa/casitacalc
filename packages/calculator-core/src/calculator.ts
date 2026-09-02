@@ -159,6 +159,7 @@ function expandRecipe(
         ? nombreOverride(recipeItem.codigoMaterial, material.nombre)
         : material.nombre,
       rubro: recipe.rubro,
+      recetaCodigo: recipe.codigo,
       cantidad: Math.round(cantidadNeta * 100) / 100,
       unidad: material.unidad,
       desperdicioPct: recipeItem.desperdicioPct,

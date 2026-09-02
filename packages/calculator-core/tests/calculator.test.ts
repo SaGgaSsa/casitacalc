@@ -43,6 +43,31 @@ const MURO_CODIGOS = [
   "ARENA",
 ] as const;
 
+describe("procedencia de ítems — recetaCodigo", () => {
+  it("cada ítem declara el código de la receta que lo generó", () => {
+    const result = calculateHouse(baseInput({ aberturas: ABERTURAS_TIPICAS }));
+    for (const i of result.items) {
+      expect(i.recetaCodigo, i.codigoMaterial).toBeDefined();
+    }
+    expect(itemEn(result, "LADRILLO_HUECO_12X18X33", Rubro.MAMPOSTERIA).recetaCodigo).toBe(
+      "MURO_LADRILLO_HUECO",
+    );
+    expect(itemEn(result, "CEMENTO_PORTLAND_25KG", Rubro.REVOQUES).recetaCodigo).toMatch(
+      /^REVOQUE_(INTERIOR|EXTERIOR)$/,
+    );
+  });
+
+  it("los revoques distinguen interior de exterior por receta", () => {
+    const result = calculateHouse(baseInput());
+    const cementos = result.items.filter(
+      (i) => i.codigoMaterial === "CEMENTO_PORTLAND_25KG" && i.rubro === Rubro.REVOQUES,
+    );
+    expect(new Set(cementos.map((i) => i.recetaCodigo))).toEqual(
+      new Set(["REVOQUE_INTERIOR", "REVOQUE_EXTERIOR"]),
+    );
+  });
+});
+
 describe("calculateMaterials — muros", () => {
   it("casa 8x10 sin aberturas: 97.2 m² brutos → ladrillos con 10% de desperdicio", () => {
     const ladrillos = item("LADRILLO_HUECO_12X18X33", Rubro.MAMPOSTERIA);

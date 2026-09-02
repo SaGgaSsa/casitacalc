@@ -110,6 +110,7 @@ export function resultToDomain(r: ResultRow): CalculationResult {
       codigoMaterial: i.codigoMaterial,
       nombreMaterial: i.nombreMaterial,
       rubro: i.rubro,
+      recetaCodigo: i.recetaCodigo ?? undefined,
       cantidad: toNum(i.cantidad),
       unidad: i.unidad as Unit,
       desperdicioPct: toNum(i.desperdicioPct),

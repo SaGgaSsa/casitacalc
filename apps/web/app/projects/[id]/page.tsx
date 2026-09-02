@@ -13,6 +13,7 @@ import { ProjectSharePanel } from "@/components/project-share-panel";
 import { getProjectFull, getLatestResult } from "@casitacalc/db";
 import { MODERATION_LABELS, VISIBILITY_LABELS } from "@casitacalc/shared";
 import { formatMoney } from "@/lib/format";
+import { resumenAberturas } from "@/lib/aberturas";
 import { getAnonymousVisitor } from "@/lib/visitor-server";
 import { getAdminSession } from "@/lib/admin";
 
@@ -122,7 +123,7 @@ export default async function ProjectDetailPage({
           />
           <Dato etiqueta="Altura de paredes" valor={`${Number(project.alturaParedesM)} m`} />
           <Dato etiqueta="Baños" valor={String(project.cantidadBanios)} />
-          <Dato etiqueta="Aberturas" valor={String(project.openings.length)} />
+          <Dato etiqueta="Aberturas" valor={resumenAberturas(project.openings)} />
         </CardContent>
       </Card>
 

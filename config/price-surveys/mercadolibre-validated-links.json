@@ -136,6 +136,15 @@
       "package_unit": "M2",
       "validatedAt": "2026-08-25",
       "note": "Aprobado por usuario en revisión de la corrida v3: igual criterio que cerámica piso (/m2)."
+    },
+    "PASTINA": {
+      "url": "https://www.mercadolibre.com.ar/sinteplast-pastina-acrilica-lista-para-usar-color-blanco-125-kg/p/MLA23868093",
+      "external_id": "MLA23868093",
+      "title": "Sinteplast Pastina Acrilica Lista Para Usar Color Blanco 1.25 Kg",
+      "package_quantity": 1.25,
+      "package_unit": "KG",
+      "validatedAt": "2026-09-02",
+      "note": "Link aportado por el usuario el 2026-09-02: reemplaza al pomo de reparación 420 g (MLA66799576, outlier $27.369/kg). Presentación 1,25 kg según título; verificar precio y presentación en la próxima corrida del survey (no ejecutada)."
     }
   }
 }

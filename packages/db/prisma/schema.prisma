@@ -127,6 +127,8 @@ model CalculationResultItem {
   codigoMaterial String
   nombreMaterial String
   rubro          String
+  /// Receta que generó el ítem (ej: REVOQUE_INTERIOR). Null en resultados viejos.
+  recetaCodigo   String?
   cantidad       Decimal  @db.Decimal(14, 2)
   unidad         String
   desperdicioPct Decimal @db.Decimal(5, 2)

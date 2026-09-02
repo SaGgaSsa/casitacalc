@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ResultView } from "@/components/result-view";
+import { resumenAberturas } from "@/lib/aberturas";
 import { getLatestResult, getPreciosActualizadoEn, getProjectByShareToken } from "@casitacalc/db";
 
 export const dynamic = "force-dynamic";
@@ -78,7 +79,7 @@ export default async function SharePage({
           />
           <Dato etiqueta="Altura de paredes" valor={`${Number(project.alturaParedesM)} m`} />
           <Dato etiqueta="Baños" valor={String(project.cantidadBanios)} />
-          <Dato etiqueta="Aberturas" valor={String(project.openings.length)} />
+          <Dato etiqueta="Aberturas" valor={resumenAberturas(project.openings)} />
         </CardContent>
       </Card>
 

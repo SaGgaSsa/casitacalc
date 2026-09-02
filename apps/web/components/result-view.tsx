@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { TriangleAlert } from "lucide-react";
 import {
   Card,
@@ -26,6 +27,17 @@ const ORDEN_RUBROS: string[] = [
   Rubro.ABERTURAS,
   Rubro.BANOS,
 ];
+
+/** Nombre legible de la receta que generó un grupo de ítems. */
+const NOMBRES_RECETA: Record<string, string> = {
+  REVOQUE_EXTERIOR: "Revoque exterior",
+  REVOQUE_INTERIOR: "Revoque interior",
+};
+
+function nombreReceta(codigo: string | undefined): string | null {
+  if (codigo === undefined) return null;
+  return NOMBRES_RECETA[codigo] ?? codigo.replace(/_/g, " ").toLowerCase();
+}
 
 /**
  * Vista de solo lectura del cómputo de materiales.
@@ -141,24 +153,7 @@ export function ResultView({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((item) => (
-                <TableRow key={`${item.rubro}|${item.codigoMaterial}|${item.nombreMaterial}`}>
-                  <TableCell className="font-medium">{item.nombreMaterial}</TableCell>
-                  <TableCell className="text-right font-mono text-sm">
-                    {formatQty(item.cantidadFinal)}{" "}
-                    <span className="text-muted-foreground">{item.unidad}</span>
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-xs text-muted-foreground">
-                    {item.desperdicioPct > 0 ? `+${item.desperdicioPct}%` : "—"}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-sm">
-                    {item.precioUnitario != null ? formatMoney(item.precioUnitario) : "—"}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-sm">
-                    {item.subtotal != null ? formatMoney(item.subtotal) : "—"}
-                  </TableCell>
-                </TableRow>
-              ))}
+              <SeccionRubro items={items} />
             </TableBody>
           </Table>
         </section>
@@ -197,5 +192,71 @@ function Dato({ etiqueta, valor }: { etiqueta: string; valor: string }) {
       <p className="text-xs uppercase tracking-wide text-muted-foreground">{etiqueta}</p>
       <p className="mt-0.5 font-mono text-foreground">{valor}</p>
     </div>
+  );
+}
+
+type Item = CalculationResult["items"][number];
+type Grupo = { codigo: string | undefined; items: Item[] };
+
+/**
+ * Agrupa los ítems de un rubro por receta de origen, preservando el orden
+ * de primera aparición.
+ */
+function gruposDeReceta(items: Item[]): Grupo[] {
+  const porCodigo = new Map<string | undefined, Item[]>();
+  for (const item of items) {
+    const lista = porCodigo.get(item.recetaCodigo);
+    if (lista) lista.push(item);
+    else porCodigo.set(item.recetaCodigo, [item]);
+  }
+  return [...porCodigo].map(([codigo, items]) => ({ codigo, items }));
+}
+
+/**
+ * Filas de un rubro. Solo muestra sub-encabezados de receta cuando el rubro
+ * mezcla más de una (p. ej. revoque exterior vs. interior); los resultados
+ * viejos sin procedencia y los rubros de receta única se ven como antes.
+ */
+function SeccionRubro({ items }: { items: Item[] }) {
+  const grupos = gruposDeReceta(items);
+  const mezcla = new Set(items.map((i) => i.recetaCodigo)).size > 1;
+  return (
+    <>
+      {grupos.map((grupo) => {
+        const nombre = mezcla ? nombreReceta(grupo.codigo) : null;
+        return (
+          <Fragment key={grupo.codigo ?? "sin-receta"}>
+            {nombre !== null && (
+              <TableRow>
+                <TableCell
+                  colSpan={5}
+                  className="bg-muted/30 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                >
+                  {nombre}
+                </TableCell>
+              </TableRow>
+            )}
+            {grupo.items.map((item) => (
+              <TableRow key={`${item.rubro}|${item.recetaCodigo ?? "?"}|${item.codigoMaterial}`}>
+                <TableCell className="font-medium">{item.nombreMaterial}</TableCell>
+                <TableCell className="text-right font-mono text-sm">
+                  {formatQty(item.cantidadFinal)}{" "}
+                  <span className="text-muted-foreground">{item.unidad}</span>
+                </TableCell>
+                <TableCell className="text-right font-mono text-xs text-muted-foreground">
+                  {item.desperdicioPct > 0 ? `+${item.desperdicioPct}%` : "—"}
+                </TableCell>
+                <TableCell className="text-right font-mono text-sm">
+                  {item.precioUnitario != null ? formatMoney(item.precioUnitario) : "—"}
+                </TableCell>
+                <TableCell className="text-right font-mono text-sm">
+                  {item.subtotal != null ? formatMoney(item.subtotal) : "—"}
+                </TableCell>
+              </TableRow>
+            ))}
+          </Fragment>
+        );
+      })}
+    </>
   );
 }

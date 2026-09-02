@@ -428,6 +428,7 @@ export async function calculateAndSaveResult(
             codigoMaterial: i.codigoMaterial,
             nombreMaterial: i.nombreMaterial,
             rubro: i.rubro,
+            recetaCodigo: i.recetaCodigo ?? null,
             cantidad: i.cantidad,
             unidad: i.unidad,
             desperdicioPct: i.desperdicioPct,
