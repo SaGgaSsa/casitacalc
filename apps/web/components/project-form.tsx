@@ -40,8 +40,8 @@ const TECHO_LABELS: Record<HouseInput["tipoTecho"], string> = {
 };
 
 const ABERTURA_LABELS: Record<keyof typeof OpeningType | string, string> = {
-  PUERTA: "Puerta",
-  VENTANA: "Ventana",
+  PUERTA: "Puerta exterior",
+  VENTANA: "Ventana exterior",
 };
 
 interface ProjectFormProps {
@@ -207,15 +207,14 @@ export function ProjectForm({ defaultValues, submitLabel, onSubmit }: ProjectFor
             </h3>
             <p className="text-sm text-muted-foreground">
               No reducen la mampostería: se usan para estimar tus puertas y ventanas.
+              La ventana se cotiza exterior de 120 × 110 cm (referencia).
             </p>
           </div>
           <Button
             type="button"
             variant="outline"
             size="sm"
-            onClick={() =>
-              aberturas.append({ tipo: "VENTANA", anchoM: 1.2, altoM: 1.1, cantidad: 1 })
-            }
+            onClick={() => aberturas.append({ tipo: "VENTANA", cantidad: 1 })}
           >
             <Plus className="size-4" />
             Agregar
@@ -228,8 +227,6 @@ export function ProjectForm({ defaultValues, submitLabel, onSubmit }: ProjectFor
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-40">Tipo</TableHead>
-                  <TableHead>Ancho (m)</TableHead>
-                  <TableHead>Alto (m)</TableHead>
                   <TableHead>Cantidad</TableHead>
                   <TableHead className="w-12" aria-label="Eliminar" />
                 </TableRow>
@@ -258,22 +255,6 @@ export function ProjectForm({ defaultValues, submitLabel, onSubmit }: ProjectFor
                           ))}
                         </SelectContent>
                       </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        step="0.05"
-                        min="0"
-                        {...register(`aberturas.${index}.anchoM`, { valueAsNumber: true })}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        step="0.05"
-                        min="0"
-                        {...register(`aberturas.${index}.altoM`, { valueAsNumber: true })}
-                      />
                     </TableCell>
                     <TableCell>
                       <Input

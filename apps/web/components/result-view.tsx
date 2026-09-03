@@ -15,7 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { CalculationResult } from "@casitacalc/shared";
-import { Rubro } from "@casitacalc/shared";
+import { Rubro, espesorReferenciaCm } from "@casitacalc/shared";
 import { formatMoney, formatQty } from "@/lib/format";
 
 const ORDEN_RUBROS: string[] = [
@@ -67,6 +67,13 @@ export function ResultView({
   const muroComputable =
     (result.geometria as { areaMuroComputableM2?: number }).areaMuroComputableM2 ??
     result.geometria.areaParedesBrutaM2;
+  // Compatibilidad con resultados guardados antes del conteo de aberturas
+  // (traían m² por abertura; ahora el cómputo es por unidad).
+  const cantidadAberturas =
+    (result.geometria as { cantidadAberturas?: number }).cantidadAberturas ??
+    result.items
+      .filter((i) => i.rubro === Rubro.ABERTURAS)
+      .reduce((acc, i) => acc + i.cantidadFinal, 0);
 
   return (
     <>
@@ -118,30 +125,41 @@ export function ResultView({
             <Dato etiqueta="Perímetro" valor={`${formatQty(result.geometria.perimetroM)} m`} />
             <Dato etiqueta="Superficie techo" valor={`${formatQty(result.geometria.superficieTechoM2)} m²`} />
             <Dato etiqueta="Muros bruta" valor={`${formatQty(result.geometria.areaParedesBrutaM2)} m²`} />
-            <Dato etiqueta="Aberturas" valor={`${formatQty(result.geometria.areaAberturasM2)} m²`} />
+            <Dato etiqueta="Aberturas" valor={`${cantidadAberturas} un`} />
             <Dato etiqueta="Muro computable" valor={`${formatQty(muroComputable)} m²`} />
           </CardContent>
         </Card>
       </div>
 
       {/* Detalle por rubro */}
-      {Object.entries(rubros).map(([rubro, items]) => (
-        <section key={rubro} className="mt-6 overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-          <header className="flex items-center justify-between border-b border-border bg-muted/40 px-6 py-3">
-            <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-foreground">
-              {rubro}
-              {rubro === Rubro.BANOS && (
-                <span className="ml-2 font-sans text-xs font-normal normal-case tracking-normal text-muted-foreground">
-                  Estimación estándar por baño
+      {Object.entries(rubros).map(([rubro, items]) => {
+        // El espesor sale del código de la receta (ej: ..._10CM), no de la UI.
+        const espesor =
+          rubro === Rubro.CONTRAPISO
+            ? espesorReferenciaCm(items[0]?.recetaCodigo ?? "")
+            : null;
+        return (
+          <section key={rubro} className="mt-6 overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+            <header className="flex items-center justify-between border-b border-border bg-muted/40 px-6 py-3">
+              <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-foreground">
+                {rubro}
+                {rubro === Rubro.BANOS && (
+                  <span className="ml-2 font-sans text-xs font-normal normal-case tracking-normal text-muted-foreground">
+                    Estimación estándar por baño
+                  </span>
+                )}
+                {espesor !== null && (
+                  <span className="ml-2 font-sans text-xs font-normal normal-case tracking-normal text-muted-foreground">
+                    espesor de referencia {espesor} cm
+                  </span>
+                )}
+              </h2>
+              {result.subtotalesPorRubro[rubro] !== undefined && (
+                <span className="font-mono text-sm text-muted-foreground">
+                  {formatMoney(result.subtotalesPorRubro[rubro])}
                 </span>
               )}
-            </h2>
-            {result.subtotalesPorRubro[rubro] !== undefined && (
-              <span className="font-mono text-sm text-muted-foreground">
-                {formatMoney(result.subtotalesPorRubro[rubro])}
-              </span>
-            )}
-          </header>
+            </header>
           <Table>
             <TableHeader>
               <TableRow>
@@ -156,8 +174,9 @@ export function ResultView({
               <SeccionRubro items={items} />
             </TableBody>
           </Table>
-        </section>
-      ))}
+          </section>
+        );
+      })}
 
       {/* Alcance del cálculo */}
       <div className="mt-6 flex items-start gap-3 rounded-lg border border-border bg-muted/40 p-4">

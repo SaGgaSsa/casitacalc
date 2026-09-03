@@ -16,8 +16,8 @@ describe("procedencia de ítems en resultados guardados", () => {
         cantidadBanios: 1, ownerTokenHash: hashToken(makeVisitorToken()),
         openings: {
           create: [
-            { tipo: "PUERTA", anchoM: 0.9, altoM: 2.0, cantidad: 1 },
-            { tipo: "VENTANA", anchoM: 1.2, altoM: 1.1, cantidad: 2 },
+            { tipo: "PUERTA", cantidad: 1 },
+            { tipo: "VENTANA", cantidad: 2 },
           ],
         },
       },

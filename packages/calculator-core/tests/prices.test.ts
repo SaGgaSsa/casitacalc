@@ -33,10 +33,10 @@ describe("applyPrices", () => {
     expect(ladrillos?.subtotal).toBe(650 * (ladrillos?.cantidadFinal ?? 0));
   });
 
-  it("suma subtotales por rubro y total general", () => {
+  it("los subtotales visibles suman exacto el total general", () => {
     const result = applyPrices(calculateHouse(baseInput()), PRECIOS);
     const sumaItems = Object.values(result.subtotalesPorRubro).reduce((a, b) => a + b, 0);
-    expect(Math.abs(sumaItems - result.totalGeneral)).toBeLessThan(0.01);
+    expect(result.totalGeneral).toBe(sumaItems);
     // Solo hay precios para Mampostería → Techo no aparece en subtotales
     expect(result.subtotalesPorRubro["Techo"]).toBeUndefined();
   });

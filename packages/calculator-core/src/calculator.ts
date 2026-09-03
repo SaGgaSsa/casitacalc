@@ -97,8 +97,10 @@ export function applyPrices(
   result: CalculationResult,
   priceMap: PriceMap,
 ): CalculationResult {
-  let totalGeneral = 0;
-  const subtotalesPorRubro: Record<string, number> = {};
+  // Política única de redondeo: cada nivel se redondea una sola vez y el
+  // total es la suma de los subtotales ya redondeados, así los valores
+  // visibles siempre suman exacto.
+  const exactoPorRubro: Record<string, number> = {};
 
   const items = result.items.map((item) => {
     const precioUnitario = priceMap[item.codigoMaterial];
@@ -106,16 +108,23 @@ export function applyPrices(
       return item;
     }
     const subtotal = roundMoney(precioUnitario * item.cantidadFinal);
-    totalGeneral += subtotal;
-    subtotalesPorRubro[item.rubro] = roundMoney((subtotalesPorRubro[item.rubro] ?? 0) + subtotal);
+    exactoPorRubro[item.rubro] = (exactoPorRubro[item.rubro] ?? 0) + subtotal;
     return { ...item, precioUnitario, subtotal };
   });
+
+  const subtotalesPorRubro: Record<string, number> = {};
+  for (const [rubro, exacto] of Object.entries(exactoPorRubro)) {
+    subtotalesPorRubro[rubro] = roundMoney(exacto);
+  }
+  const totalGeneral = roundMoney(
+    Object.values(subtotalesPorRubro).reduce((a, b) => a + b, 0),
+  );
 
   return {
     ...result,
     items,
     subtotalesPorRubro,
-    totalGeneral: roundMoney(totalGeneral),
+    totalGeneral,
   };
 }
 
@@ -196,46 +205,43 @@ function expandPisos(
   return pisoRecipes.flatMap((r) => expandRecipe(r, base, catalog));
 }
 
-/** 1.2 → "1,20" (formato argentino para etiquetas de aberturas). */
-function formatoMedida(m: number): string {
-  return m.toFixed(2).replace(".", ",");
-}
+/**
+ * Medida comercial de referencia para la ventana exterior (120 × 110 cm).
+ * Valor fijo del motor: no se guarda por abertura ni es variable del input.
+ */
+const VENTANA_REFERENCIA_CM = "120 × 110 cm";
 
-function etiquetaAbertura(abertura: Opening): string {
-  const tipo = abertura.tipo === OpeningType.PUERTA ? "Puerta" : "Ventana";
-  return `${tipo} ${formatoMedida(abertura.anchoM)} × ${formatoMedida(abertura.altoM)} m`;
+function etiquetaAbertura(tipo: Opening["tipo"]): string {
+  return tipo === OpeningType.PUERTA
+    ? "Puerta exterior"
+    : `Ventana exterior (ref. ${VENTANA_REFERENCIA_CM})`;
 }
 
 /**
- * Rubro Aberturas: agrupa el input por (tipo, dimensiones) y expande la
- * receta del tipo con base = cantidad total del grupo. Preserva las
- * dimensiones originales en el nombre del ítem para una futura
- * correspondencia Opening → producto comercial (OpeningSpec).
+ * Rubro Aberturas: agrupa el input por tipo y expande la receta del tipo
+ * con base = cantidad total del grupo. Sin dimensiones en el input.
  */
 function expandAberturas(
   recipes: Recipe[],
   aberturas: Opening[],
   catalog: MaterialCatalog,
 ): CalculationResultItem[] {
-  const grupos = new Map<string, { abertura: Opening; cantidad: number }>();
+  const porTipo = new Map<Opening["tipo"], number>();
   for (const abertura of aberturas) {
-    const clave = `${abertura.tipo}|${abertura.anchoM}|${abertura.altoM}`;
-    const grupo = grupos.get(clave);
-    if (grupo) grupo.cantidad += abertura.cantidad;
-    else grupos.set(clave, { abertura, cantidad: abertura.cantidad });
+    porTipo.set(abertura.tipo, (porTipo.get(abertura.tipo) ?? 0) + abertura.cantidad);
   }
 
   const items: CalculationResultItem[] = [];
-  for (const { abertura, cantidad } of grupos.values()) {
+  for (const [tipo, cantidad] of porTipo) {
     const recipe = recipes.find(
-      (r) => r.rubro === Rubro.ABERTURAS && r.tipoAbertura === abertura.tipo,
+      (r) => r.rubro === Rubro.ABERTURAS && r.tipoAbertura === tipo,
     );
     if (!recipe) {
       throw new Error(
-        `No hay receta de aberturas configurada para el tipo "${abertura.tipo}"`,
+        `No hay receta de aberturas configurada para el tipo "${tipo}"`,
       );
     }
-    const etiqueta = etiquetaAbertura(abertura);
+    const etiqueta = etiquetaAbertura(tipo);
     items.push(...expandRecipe(recipe, cantidad, catalog, () => etiqueta));
   }
   return items;

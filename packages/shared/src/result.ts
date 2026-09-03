@@ -37,7 +37,8 @@ export const CalculationResultSchema = z.object({
     superficiePlantaM2: z.number(),
     perimetroM: z.number(),
     areaParedesBrutaM2: z.number(),
-    areaAberturasM2: z.number(),
+    /** Cantidad total de aberturas cargadas (informativa; el cómputo es por unidad). */
+    cantidadAberturas: z.number(),
     /** Base de mampostería y revoques = área bruta (las aberturas no descuentan). */
     areaMuroComputableM2: z.number(),
     superficieTechoM2: z.number(),

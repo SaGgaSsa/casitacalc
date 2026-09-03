@@ -20,8 +20,8 @@ function baseInput(overrides: Partial<HouseInput> = {}): HouseInput {
 }
 
 const ABERTURAS_TIPICAS: HouseInput["aberturas"] = [
-  { tipo: "PUERTA", anchoM: 0.9, altoM: 2.0, cantidad: 1 }, // 1.8 m²
-  { tipo: "VENTANA", anchoM: 1.2, altoM: 1.1, cantidad: 4 }, // 5.28 m²
+  { tipo: "PUERTA", cantidad: 1 },
+  { tipo: "VENTANA", cantidad: 4 },
 ];
 
 function itemEn(resulta: ReturnType<typeof calculateHouse>, codigoMaterial: string, rubro?: string) {
@@ -86,8 +86,8 @@ describe("calculateMaterials — muros", () => {
       expect(b.cantidad, codigo).toBe(a.cantidad);
       expect(b.cantidadFinal, codigo).toBe(a.cantidadFinal);
     }
-    // La geometría sí sigue registrando las aberturas.
-    expect(con.geometria.areaAberturasM2).toBeCloseTo(7.08);
+    // La geometría sí sigue registrando las aberturas (cantidad, no m²).
+    expect(con.geometria.cantidadAberturas).toBe(5);
     expect(con.geometria.areaMuroComputableM2).toBeCloseTo(97.2);
   });
 
@@ -171,6 +171,16 @@ describe("calculateMaterials — contrapiso", () => {
     expect(itemEn(mitad, "CEMENTO_PORTLAND_25KG", Rubro.CONTRAPISO).cantidadFinal).toBe(34);
   });
 
+  it("los ítems declaran la receta de 10 cm (la UI lee el espesor de ahí)", () => {
+    const result = calculateHouse(baseInput());
+    const codigos = new Set(
+      result.items
+        .filter((i) => i.rubro === Rubro.CONTRAPISO)
+        .map((i) => i.recetaCodigo),
+    );
+    expect(codigos).toEqual(new Set(["CONTRAPISO_HORMIGON_10CM"]));
+  });
+
   it("falla con error descriptivo si no hay receta de contrapiso", () => {
     expect(() =>
       calculateHouse(baseInput(), {
@@ -229,31 +239,31 @@ describe("calculateMaterials — pisos generales", () => {
 });
 
 describe("calculateMaterials — aberturas como rubro", () => {
-  it("convierte cada grupo de aberturas en items con sus dimensiones", () => {
+  it("convierte cada tipo de abertura en items con etiqueta de exterior", () => {
     const result = calculateHouse(baseInput({ aberturas: ABERTURAS_TIPICAS }));
     const puerta = itemEn(result, "PUERTA_ESTANDAR", Rubro.ABERTURAS);
-    expect(puerta.nombreMaterial).toBe("Puerta 0,90 × 2,00 m");
+    expect(puerta.nombreMaterial).toBe("Puerta exterior");
     expect(puerta.cantidadFinal).toBe(1);
     expect(puerta.unidad).toBe(Unit.UN);
     const ventana = itemEn(result, "VENTANA_ESTANDAR", Rubro.ABERTURAS);
-    expect(ventana.nombreMaterial).toBe("Ventana 1,20 × 1,10 m");
+    expect(ventana.nombreMaterial).toBe("Ventana exterior (ref. 120 × 110 cm)");
     expect(ventana.cantidadFinal).toBe(4);
   });
 
-  it("agrupa aberturas de iguales dimensiones y suma cantidades", () => {
+  it("agrupa aberturas del mismo tipo y suma cantidades", () => {
     const result = calculateHouse(
       baseInput({
         aberturas: [
-          { tipo: "VENTANA", anchoM: 1.2, altoM: 1.1, cantidad: 2 },
-          { tipo: "VENTANA", anchoM: 1.2, altoM: 1.1, cantidad: 3 },
-          { tipo: "VENTANA", anchoM: 1.0, altoM: 1.0, cantidad: 1 },
+          { tipo: "VENTANA", cantidad: 2 },
+          { tipo: "VENTANA", cantidad: 3 },
+          { tipo: "PUERTA", cantidad: 1 },
         ],
       }),
     );
     const ventanas = result.items.filter((i) => i.rubro === Rubro.ABERTURAS);
     expect(ventanas).toHaveLength(2);
-    const grande = ventanas.find((i) => i.nombreMaterial.includes("1,20"))!;
-    expect(grande.cantidadFinal).toBe(5);
+    const ventana = ventanas.find((i) => i.codigoMaterial === "VENTANA_ESTANDAR")!;
+    expect(ventana.cantidadFinal).toBe(5);
   });
 
   it("sin aberturas no hay rubro Aberturas", () => {

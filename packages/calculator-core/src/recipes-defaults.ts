@@ -128,7 +128,8 @@ export const DEFAULT_RECIPES: Recipe[] = [
       { codigoMaterial: "PASTINA", cantidadPorUnidad: 0.15, desperdicioPct: D.BAJO },
     ],
   },
-  // ── Aberturas: 1 unidad por abertura del tipo; dimensiones desde el input ──
+  // ── Aberturas: 1 unidad por abertura del tipo; la ventana usa la medida ──
+  // de referencia fija del motor (120×110), no variable del input.
   {
     codigo: "ABERTURA_PUERTA",
     rubro: Rubro.ABERTURAS,

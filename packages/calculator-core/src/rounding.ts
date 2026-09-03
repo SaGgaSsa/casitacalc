@@ -19,7 +19,11 @@ export function roundQuantity(cantidad: number, unidad: Unit): number {
   return round2(cantidad);
 }
 
-/** Redondeo monetario a 2 decimales. */
+/**
+ * Redondeo monetario a pesos enteros: el $ argentino no usa centavos en
+ * la práctica y todos los totales visibles (ítems, rubros, total) usan
+ * esta misma política, así lo que se ve siempre suma exacto.
+ */
 export function roundMoney(value: number): number {
-  return round2(value);
+  return Math.round(value);
 }

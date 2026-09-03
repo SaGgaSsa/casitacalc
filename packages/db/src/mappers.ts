@@ -40,8 +40,6 @@ export function projectToHouseInput(
 export function openingToDomain(o: Opening): OpeningDomain {
   return {
     tipo: o.tipo as OpeningDomain["tipo"],
-    anchoM: toNum(o.anchoM),
-    altoM: toNum(o.altoM),
     cantidad: o.cantidad,
   };
 }

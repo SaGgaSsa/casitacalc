@@ -13,7 +13,7 @@ const DEFAULTS_NUEVO: HouseInput = {
   tipoTecho: "CHAPA",
   anguloTechoGrados: 20,
   cantidadBanios: 1,
-  aberturas: [{ tipo: "VENTANA", anchoM: 1.2, altoM: 1.1, cantidad: 2 }],
+  aberturas: [{ tipo: "VENTANA", cantidad: 2 }],
 };
 
 async function parseError(response: Response): Promise<string> {

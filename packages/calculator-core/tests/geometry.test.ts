@@ -26,15 +26,15 @@ describe("computeGeometry", () => {
     expect(geo.areaParedesBrutaM2).toBeCloseTo(36 * 2.7);
   });
 
-  it("registra el área de aberturas pero no la descuenta del muro computable", () => {
+  it("registra la cantidad de aberturas pero no la descuenta del muro computable", () => {
     const input = baseInput({
       aberturas: [
-        { tipo: "PUERTA", anchoM: 0.9, altoM: 2.0, cantidad: 1 }, // 1.8
-        { tipo: "VENTANA", anchoM: 1.2, altoM: 1.1, cantidad: 4 }, // 5.28
+        { tipo: "PUERTA", cantidad: 1 },
+        { tipo: "VENTANA", cantidad: 4 },
       ],
     });
     const geo = computeGeometry(input);
-    expect(geo.areaAberturasM2).toBeCloseTo(7.08);
+    expect(geo.cantidadAberturas).toBe(5);
     // Decisión de proyecto: las aberturas no reducen la mampostería.
     expect(geo.areaMuroComputableM2).toBeCloseTo(97.2);
   });
@@ -44,7 +44,7 @@ describe("computeGeometry", () => {
       anchoM: 3,
       largoM: 3,
       alturaParedesM: 2.4,
-      aberturas: [{ tipo: "PUERTA", anchoM: 2.5, altoM: 2.2, cantidad: 8 }],
+      aberturas: [{ tipo: "PUERTA", cantidad: 8 }],
     });
     expect(computeGeometry(input).areaMuroComputableM2).toBeCloseTo(28.8);
   });

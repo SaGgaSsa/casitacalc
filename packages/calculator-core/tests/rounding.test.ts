@@ -20,8 +20,9 @@ describe("roundQuantity", () => {
 });
 
 describe("roundMoney", () => {
-  it("redondea a 2 decimales", () => {
-    expect(roundMoney(100.005)).toBe(100.01);
-    expect(roundMoney(33.333333)).toBe(33.33);
+  it("redondea a pesos enteros (misma política en ítems, rubros y total)", () => {
+    expect(roundMoney(100.005)).toBe(100);
+    expect(roundMoney(33.6)).toBe(34);
+    expect(roundMoney(33.4)).toBe(33);
   });
 });

@@ -1,5 +1,4 @@
 import type { HouseInput } from "@casitacalc/shared";
-import { openingArea } from "@casitacalc/shared";
 import { RoofType } from "@casitacalc/shared";
 
 /** Geometría derivada de la vivienda, insumo de todos los cálculos por rubro. */
@@ -8,8 +7,8 @@ export interface HouseGeometry {
   perimetroM: number;
   /** perimetro * alturaParedes. */
   areaParedesBrutaM2: number;
-  /** Suma de las aberturas cargadas (informativa + base del rubro Aberturas). */
-  areaAberturasM2: number;
+  /** Suma de las cantidades cargadas (informativa; el cómputo es por unidad). */
+  cantidadAberturas: number;
   /**
    * Base computable de mampostería y revoques = área bruta.
    * Decisión de proyecto: las aberturas NO reducen los materiales de muro
@@ -29,8 +28,8 @@ export function computeGeometry(input: HouseInput): HouseGeometry {
   const perimetroM = 2 * (input.anchoM + input.largoM);
   const areaParedesBrutaM2 = perimetroM * input.alturaParedesM;
 
-  const areaAberturasM2 = input.aberturas.reduce(
-    (total, abertura) => total + openingArea(abertura),
+  const cantidadAberturas = input.aberturas.reduce(
+    (total, abertura) => total + abertura.cantidad,
     0,
   );
 
@@ -46,7 +45,7 @@ export function computeGeometry(input: HouseInput): HouseGeometry {
     superficiePlantaM2,
     perimetroM,
     areaParedesBrutaM2,
-    areaAberturasM2,
+    cantidadAberturas,
     areaMuroComputableM2,
     superficieTechoM2,
   };

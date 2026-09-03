@@ -36,7 +36,7 @@ const RubroEnum = z.enum([
  *  - pisos      → 1 m² de piso general (planta menos baños)
  *  - techo      → 1 m² de superficie de techo
  *  - baños      → 1 baño completo (paquete estándar)
- *  - aberturas  → 1 abertura del tipo indicado (las dimensiones vienen del input)
+ *  - aberturas  → 1 abertura del tipo indicado (sin dimensiones en el input)
  */
 export const RecipeItemSchema = z.object({
   codigoMaterial: z.string().min(1),
@@ -77,6 +77,16 @@ export const RecipeSchema = z
   );
 
 export type Recipe = z.infer<typeof RecipeSchema>;
+
+/**
+ * Espesor de referencia en cm declarado en el código de la receta
+ * (sufijo _<N>CM, ej: CONTRAPISO_HORMIGON_10CM → 10).
+ * Fuente única: el código; la UI lo lee de acá, no lo duplica.
+ */
+export function espesorReferenciaCm(recetaCodigo: string): number | null {
+  const match = /_(\d+)CM$/.exec(recetaCodigo);
+  return match ? Number(match[1]) : null;
+}
 
 export const UpdateRecipeSchema = z.object({
   items: z.array(RecipeItemSchema).min(1),

@@ -61,8 +61,6 @@ model Opening {
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   tipo     String
-  anchoM   Decimal @db.Decimal(6, 2)
-  altoM    Decimal @db.Decimal(6, 2)
   cantidad Int
 
   @@index([projectId])

@@ -468,6 +468,7 @@ describe("publicación y consumo del precio", () => {
             rubro: recipe.rubro,
             sistemaConstructivo: recipe.sistemaConstructivo ?? null,
             tipoTecho: recipe.tipoTecho ?? null,
+            tipoAbertura: recipe.tipoAbertura ?? null,
             items: {
               create: [{ codigoMaterial: "CEMENTO_PORTLAND_25KG", cantidadPorUnidad: 0.1, desperdicioPct: 5 }],
             },

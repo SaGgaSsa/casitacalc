@@ -29,8 +29,6 @@ export async function createProject(
       openings: {
         create: aberturas.map((a) => ({
           tipo: a.tipo,
-          anchoM: a.anchoM,
-          altoM: a.altoM,
           cantidad: a.cantidad,
         })),
       },
@@ -62,8 +60,6 @@ export async function updateProject(
         openings: {
           create: aberturas.map((a) => ({
             tipo: a.tipo,
-            anchoM: a.anchoM,
-            altoM: a.altoM,
             cantidad: a.cantidad,
           })),
         },
